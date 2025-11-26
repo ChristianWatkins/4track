@@ -84,12 +84,15 @@ export default function CassetteRack({
                   key={cassette.id}
                   layoutId={`cassette-${cassette.id}`}
                   initial={{ opacity: 0, x: -50, rotateY: -20 }}
-                  animate={{ opacity: 1, x: 0, rotateY: 0 }}
+                  animate={{ opacity: 1, x: 0, rotateY: -8 }}
                   exit={{ opacity: 0, x: -50, rotateY: -20 }}
                   onHoverStart={() => setHoveredId(cassette.id)}
                   onHoverEnd={() => setHoveredId(null)}
                   className="relative group"
-                  style={{ transformStyle: 'preserve-3d', perspective: '1000px' }}
+                  style={{ 
+                    transformStyle: 'preserve-3d',
+                    perspective: '1000px',
+                  }}
                 >
                   {/* Cassette Spine (horizontal cassette showing spine) */}
                   <div
@@ -125,11 +128,25 @@ export default function CassetteRack({
                           inset -2px 0 4px rgba(255,255,255,0.08)
                         `,
                       transform: isHovered 
-                        ? 'translateX(8px) rotateY(5deg) scale(1.02)' 
+                        ? 'translateX(8px) rotateY(-3deg) scale(1.02)' 
                         : 'translateX(0) rotateY(0) scale(1)',
                       transformStyle: 'preserve-3d',
                     }}
                   >
+                    {/* Right side panel (visible due to perspective) */}
+                    <div 
+                      className="absolute top-0 right-0 bottom-0 w-3 pointer-events-none"
+                      style={{
+                        background: `linear-gradient(to left, 
+                          ${cassetteColor}aa 0%,
+                          ${cassetteColor}66 50%,
+                          transparent 100%
+                        )`,
+                        transform: 'translateX(100%) rotateY(90deg)',
+                        transformOrigin: 'left center',
+                        boxShadow: 'inset 2px 0 4px rgba(0,0,0,0.4)',
+                      }}
+                    />
                     {/* Top edge highlight */}
                     <div 
                       className="absolute top-0 left-0 right-0 h-1 pointer-events-none"
