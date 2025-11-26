@@ -65,6 +65,7 @@ export default function Home() {
   const [speakers, setSpeakers] = useState<MediaDeviceInfo[]>([]);
   const [selectedSpeaker, setSelectedSpeaker] = useState<string | null>(null);
   const [cassetteTitle, setCassetteTitle] = useState('');
+  const [cassetteColor, setCassetteColor] = useState('#ff6b35');
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
   const [allCassettes, setAllCassettes] = useState<Array<{ id: string; data: ProjectData }>>([]);
@@ -77,6 +78,7 @@ export default function Home() {
     setCurrentProjectId(newId);
     updateTracks(emptyProject.tracks);
     setCassetteTitle('');
+    setCassetteColor(emptyProject.cassetteColor || '#ff6b35');
     await loadAllCassettes();
   };
 
@@ -87,6 +89,7 @@ export default function Home() {
         setCurrentProjectId(id);
         updateTracks(project.tracks);
         setCassetteTitle(project.cassetteTitle || '');
+        setCassetteColor(project.cassetteColor || '#ff6b35');
       }
     } catch (error) {
       console.error('Error loading cassette:', error);
@@ -100,6 +103,7 @@ export default function Home() {
       tracks,
       counterPosition,
       cassetteTitle,
+      cassetteColor,
       createdAt: Date.now(),
       updatedAt: Date.now(),
     };
@@ -167,6 +171,7 @@ export default function Home() {
         setCurrentProjectId(mostRecent.id);
         updateTracks(mostRecent.data.tracks);
         setCassetteTitle(mostRecent.data.cassetteTitle || '');
+        setCassetteColor(mostRecent.data.cassetteColor || '#ff6b35');
       } else {
         // Create a default cassette
         await createNewCassette();
@@ -220,6 +225,7 @@ export default function Home() {
           tracks,
           counterPosition,
           cassetteTitle,
+          cassetteColor,
           createdAt: Date.now(),
           updatedAt: Date.now(),
         };
@@ -228,7 +234,7 @@ export default function Home() {
           setAllCassettes((prev) =>
             prev.map((c) =>
               c.id === currentProjectId
-                ? { ...c, data: { ...c.data, cassetteTitle, updatedAt: Date.now() } }
+                ? { ...c, data: { ...c.data, cassetteTitle, cassetteColor, updatedAt: Date.now() } }
                 : c
             )
           );
@@ -237,7 +243,7 @@ export default function Home() {
 
       return () => clearTimeout(timeoutId);
     }
-  }, [tracks, counterPosition, cassetteTitle, isLoading, currentProjectId]);
+  }, [tracks, counterPosition, cassetteTitle, cassetteColor, isLoading, currentProjectId]);
 
   const handleExport = async () => {
     try {
@@ -364,11 +370,12 @@ export default function Home() {
             </div>
           ) : null}
           <CassetteVisualizer 
-            state={state} 
+            state={state}
             isRewinding={isRewinding}
             isFastForwarding={isFastForwarding}
             isJumping={isJumping}
             cassetteTitle={cassetteTitle}
+            cassetteColor={cassetteColor}
             onTitleClick={() => setIsEditingTitle(true)}
           />
         </div>

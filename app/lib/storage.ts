@@ -59,6 +59,22 @@ export async function deleteProject(projectId: string): Promise<void> {
 }
 
 export function createEmptyProject(): ProjectData {
+  // Random cassette colors
+  const colors = [
+    '#ff6b35', // Orange (default)
+    '#4ade80', // Green
+    '#60a5fa', // Blue
+    '#f472b6', // Pink
+    '#a78bfa', // Purple
+    '#fbbf24', // Yellow
+    '#ef4444', // Red
+    '#14b8a6', // Teal
+    '#fb923c', // Light Orange
+    '#c084fc', // Light Purple
+  ];
+  
+  const randomColor = colors[Math.floor(Math.random() * colors.length)];
+  
   return {
     tracks: [
       { id: 1, audioBuffer: null, duration: 0, sampleRate: 44100, name: '' },
@@ -68,6 +84,7 @@ export function createEmptyProject(): ProjectData {
     ],
     counterPosition: 0,
     cassetteTitle: '',
+    cassetteColor: randomColor,
     createdAt: Date.now(),
     updatedAt: Date.now(),
   };

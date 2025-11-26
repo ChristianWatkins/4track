@@ -9,10 +9,11 @@ interface CassetteVisualizerProps {
   isFastForwarding?: boolean;
   isJumping?: boolean;
   cassetteTitle?: string;
+  cassetteColor?: string;
   onTitleClick?: () => void;
 }
 
-export default function CassetteVisualizer({ state, isRewinding = false, isFastForwarding = false, isJumping = false, cassetteTitle = '', onTitleClick }: CassetteVisualizerProps) {
+export default function CassetteVisualizer({ state, isRewinding = false, isFastForwarding = false, isJumping = false, cassetteTitle = '', cassetteColor = '#ff6b35', onTitleClick }: CassetteVisualizerProps) {
   const isPlaying = state === 'playing' || state === 'recording';
   const shouldAnimate = isPlaying || isRewinding || isFastForwarding || isJumping;
   
@@ -170,16 +171,23 @@ export default function CassetteVisualizer({ state, isRewinding = false, isFastF
 
         {/* Tape window */}
         <motion.div 
-          className="absolute w-[120px] h-[60px] bg-black border-2 border-gray-700 left-1/2 rounded"
+          className="absolute w-[120px] h-[60px] bg-black border-2 border-gray-700 left-1/2 rounded overflow-hidden"
           style={{
             top: '50%',
           }}
           animate={{ x: '-50%', y: '-50%' }}
         >
+          {/* Colored tape cover */}
+          <div
+            className="absolute inset-0 opacity-40"
+            style={{
+              background: `linear-gradient(90deg, transparent 0%, ${cassetteColor} 20%, ${cassetteColor} 80%, transparent 100%)`,
+            }}
+          />
           <motion.div
             className="w-full h-full bg-repeating-linear-gradient-to-r from-transparent via-transparent to-orange-300/30"
             style={{
-              backgroundImage: 'repeating-linear-gradient(90deg, transparent, transparent 10px, rgba(255, 165, 0, 0.3) 10px, rgba(255, 165, 0, 0.3) 12px)',
+              backgroundImage: `repeating-linear-gradient(90deg, transparent, transparent 10px, ${cassetteColor}4D 10px, ${cassetteColor}4D 12px)`,
             }}
             animate={shouldAnimate ? { x: (isRewinding || isJumping) ? [0, -20, 0] : [0, 20, 0] } : {}}
             transition={shouldAnimate ? { duration: animationDuration, repeat: Infinity, ease: 'linear' } : {}}

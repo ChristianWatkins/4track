@@ -12,6 +12,7 @@ export interface ProjectData {
   tracks: TrackData[];
   counterPosition: number;
   cassetteTitle?: string;
+  cassetteColor?: string; // Hex color for cassette
   createdAt: number;
   updatedAt: number;
 }
