@@ -50,17 +50,18 @@ export default function TransportControls({
 
   const handleRewindMouseDown = () => {
     // If there's audio, use cue mode (play in reverse at high speed)
+    // Cue should work both when stopped and when playing
     if (hasAudio && !isRecording) {
       isCueingRef.current = true;
       onCueRewindStart?.();
-    }
-    onRewind(); // Initial rewind
-    onRewindStart?.();
-    rewindIntervalRef.current = setInterval(() => {
-      if (!isCueingRef.current) {
+    } else {
+      // If no audio or recording, just do normal rewind
+      onRewind(); // Initial rewind
+      onRewindStart?.();
+      rewindIntervalRef.current = setInterval(() => {
         onRewind();
-      }
-    }, 100); // Spol hver 100ms (only when not cueing)
+      }, 100); // Spol hver 100ms
+    }
   };
 
   const handleRewindMouseUp = () => {
@@ -77,17 +78,18 @@ export default function TransportControls({
 
   const handleFastForwardMouseDown = () => {
     // If there's audio, use cue mode (play at high speed)
+    // Cue should work both when stopped and when playing
     if (hasAudio && !isRecording) {
       isCueingRef.current = true;
       onCueFastForwardStart?.();
-    }
-    onFastForward(); // Initial fast forward
-    onFastForwardStart?.();
-    fastForwardIntervalRef.current = setInterval(() => {
-      if (!isCueingRef.current) {
+    } else {
+      // If no audio or recording, just do normal fast forward
+      onFastForward(); // Initial fast forward
+      onFastForwardStart?.();
+      fastForwardIntervalRef.current = setInterval(() => {
         onFastForward();
-      }
-    }, 100); // Spol hver 100ms (only when not cueing)
+      }, 100); // Spol hver 100ms
+    }
   };
 
   const handleFastForwardMouseUp = () => {
