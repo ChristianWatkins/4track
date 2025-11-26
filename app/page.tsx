@@ -302,7 +302,7 @@ export default function Home() {
       />
 
       {/* Main content area */}
-      <div className="flex-1 ml-64 p-8">
+      <div className="flex-1 ml-72 p-8">
         <div className="max-w-6xl mx-auto space-y-8">
           <div className="text-center border-b-2 border-cassette-orange pb-4">
             <h1 className="text-[28px] uppercase tracking-[3px] text-cassette-orange font-bold drop-shadow-[0_0_10px_rgba(255,165,0,0.5)]">

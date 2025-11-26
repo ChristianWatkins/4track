@@ -21,6 +21,7 @@ export default function CassetteRack({
   onRenameCassette,
   onNewCassette,
 }: CassetteRackProps) {
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
@@ -53,33 +54,31 @@ export default function CassetteRack({
     return date.toLocaleDateString('nb-NO', {
       month: 'short',
       day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
     });
   };
 
   return (
-    <div className="fixed left-0 top-0 bottom-0 w-64 bg-[#1a1a1a] border-r border-[#333] flex flex-col z-50 shadow-2xl">
+    <div className="fixed left-0 top-0 bottom-0 w-72 bg-gradient-to-b from-[#2a2a2a] to-[#1a1a1a] border-r-2 border-[#444] flex flex-col z-50 shadow-2xl">
       {/* Header */}
-      <div className="p-4 border-b border-[#333] bg-gradient-to-b from-[#222] to-[#1a1a1a]">
-        <h2 className="text-lg font-bold text-[#ccc] mb-3 flex items-center gap-2">
+      <div className="p-4 border-b-2 border-[#555] bg-gradient-to-b from-[#333] to-[#2a2a2a]">
+        <h2 className="text-xl font-bold text-[#ff6b35] mb-3 flex items-center gap-2 drop-shadow-[0_0_8px_rgba(255,107,53,0.6)]">
           <span className="text-2xl">📼</span>
-          <span>Kassett-stativ</span>
+          <span>KASSETT-STATIV</span>
         </h2>
         <button
           onClick={onNewCassette}
-          className="w-full py-2 px-4 bg-[#ff6b35] hover:bg-[#ff8555] text-white rounded transition-colors flex items-center justify-center gap-2"
+          className="w-full py-2 px-4 bg-gradient-to-b from-[#ff6b35] to-[#ff5520] hover:from-[#ff8555] hover:to-[#ff6b35] text-white font-bold rounded shadow-lg transition-all hover:shadow-[0_0_15px_rgba(255,107,53,0.6)] border-2 border-[#ff8555]"
         >
-          <span className="text-xl">+</span>
-          <span>Ny kassett</span>
+          + NY KASSETT
         </button>
       </div>
 
       {/* Cassette List */}
-      <div className="flex-1 overflow-y-auto p-2 scrollbar-thin scrollbar-thumb-[#444] scrollbar-track-[#1a1a1a]">
+      <div className="flex-1 overflow-y-auto p-3 space-y-3">
         <AnimatePresence>
           {cassettes.map((cassette) => {
             const isActive = cassette.id === currentCassetteId;
+            const isHovered = hoveredId === cassette.id;
             const isEditing = editingId === cassette.id;
             const isDeleting = deleteConfirmId === cassette.id;
             const title = cassette.data.cassetteTitle || 'Untitled';
@@ -89,116 +88,152 @@ export default function CassetteRack({
               <motion.div
                 key={cassette.id}
                 layoutId={`cassette-${cassette.id}`}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                className={`mb-2 p-3 rounded border transition-all ${
-                  isActive
-                    ? 'bg-[#2a2a2a] border-[#ff6b35] shadow-lg'
-                    : 'bg-[#222] border-[#444] hover:border-[#666]'
-                }`}
+                initial={{ opacity: 0, x: -30, rotateY: -15 }}
+                animate={{ opacity: 1, x: 0, rotateY: 0 }}
+                exit={{ opacity: 0, x: -30, rotateY: -15 }}
+                onHoverStart={() => setHoveredId(cassette.id)}
+                onHoverEnd={() => setHoveredId(null)}
+                className="relative"
+                style={{ transformStyle: 'preserve-3d' }}
               >
-                {/* Title */}
-                <div className="mb-2">
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      value={editingName}
-                      onChange={(e) => setEditingName(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') handleSaveEdit(cassette.id);
-                        if (e.key === 'Escape') handleCancelEdit();
-                      }}
-                      className="w-full px-2 py-1 bg-[#333] text-[#ccc] border border-[#555] rounded text-sm"
-                      autoFocus
-                    />
-                  ) : (
-                    <div
-                      className={`font-semibold truncate ${
-                        isActive ? 'text-[#ff6b35]' : 'text-[#ccc]'
-                      }`}
-                    >
-                      {title}
+                {/* Cassette Shell */}
+                <div
+                  className={`relative w-full h-32 rounded-lg transition-all duration-300 cursor-pointer ${
+                    isActive
+                      ? 'shadow-[0_0_20px_rgba(255,107,53,0.8)]'
+                      : 'shadow-[0_4px_8px_rgba(0,0,0,0.5)]'
+                  } ${isHovered ? 'scale-105' : 'scale-100'}`}
+                  onClick={() => !isActive && !isEditing && !isDeleting && onLoadCassette(cassette.id)}
+                  style={{
+                    background: isActive
+                      ? 'linear-gradient(135deg, #ff6b35 0%, #ff8555 50%, #ff6b35 100%)'
+                      : 'linear-gradient(135deg, #4a4a4a 0%, #5a5a5a 50%, #4a4a4a 100%)',
+                    transform: isHovered ? 'translateZ(10px)' : 'translateZ(0px)',
+                  }}
+                >
+                  {/* Cassette Top Label Area */}
+                  <div className="absolute top-2 left-3 right-3 h-14 bg-white/90 rounded border border-gray-300 flex flex-col items-center justify-center p-1">
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        value={editingName}
+                        onChange={(e) => setEditingName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleSaveEdit(cassette.id);
+                          if (e.key === 'Escape') handleCancelEdit();
+                        }}
+                        onBlur={() => handleSaveEdit(cassette.id)}
+                        className="w-full px-1 py-0.5 text-sm text-center bg-transparent border-none outline-none text-gray-800 font-['Caveat']"
+                        autoFocus
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    ) : (
+                      <>
+                        <div
+                          className="text-sm font-bold text-gray-800 truncate w-full text-center px-1"
+                          style={{ fontFamily: "'Caveat', cursive" }}
+                        >
+                          {title}
+                        </div>
+                        <div className="text-[10px] text-gray-600">
+                          {formatDate(cassette.data.updatedAt)}
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Cassette Reels */}
+                  <div className="absolute bottom-6 left-0 right-0 flex justify-around px-8">
+                    <div className="w-8 h-8 rounded-full bg-[#1a1a1a] border-2 border-[#333] flex items-center justify-center">
+                      <div className="w-3 h-3 rounded-full bg-[#2a2a2a]" />
                     </div>
+                    <div className="w-8 h-8 rounded-full bg-[#1a1a1a] border-2 border-[#333] flex items-center justify-center">
+                      <div className="w-3 h-3 rounded-full bg-[#2a2a2a]" />
+                    </div>
+                  </div>
+
+                  {/* Status Indicators */}
+                  <div className="absolute bottom-1 left-2 flex gap-1 text-xs">
+                    {hasAudio && (
+                      <span className="px-1.5 py-0.5 bg-green-500 text-white rounded text-[10px] font-bold">
+                        ●
+                      </span>
+                    )}
+                    {isActive && (
+                      <span className="px-1.5 py-0.5 bg-white text-[#ff6b35] rounded text-[10px] font-bold">
+                        AKTIV
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Action Buttons - Show on hover */}
+                  {(isHovered || isDeleting) && !isEditing && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="absolute bottom-1 right-1 flex gap-1"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {isDeleting ? (
+                        <>
+                          <button
+                            onClick={() => handleConfirmDelete(cassette.id)}
+                            className="px-2 py-1 bg-red-600 hover:bg-red-700 text-white text-[10px] rounded font-bold"
+                          >
+                            OK
+                          </button>
+                          <button
+                            onClick={() => setDeleteConfirmId(null)}
+                            className="px-2 py-1 bg-gray-600 hover:bg-gray-700 text-white text-[10px] rounded font-bold"
+                          >
+                            NEI
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => handleStartEdit(cassette.id, title)}
+                            className="px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white text-[10px] rounded font-bold"
+                            title="Gi nytt navn"
+                          >
+                            ✏️
+                          </button>
+                          <button
+                            onClick={() => handleDeleteClick(cassette.id)}
+                            className="px-2 py-1 bg-red-600 hover:bg-red-700 text-white text-[10px] rounded font-bold"
+                            title="Slett"
+                          >
+                            🗑️
+                          </button>
+                        </>
+                      )}
+                    </motion.div>
                   )}
                 </div>
 
-                {/* Metadata */}
-                <div className="text-xs text-[#888] mb-2">
-                  <div>{formatDate(cassette.data.updatedAt)}</div>
-                  {hasAudio && <div className="text-[#4ade80]">● Har opptak</div>}
-                </div>
-
-                {/* Actions */}
-                {isDeleting ? (
-                  <div className="flex gap-1">
-                    <button
-                      onClick={() => handleConfirmDelete(cassette.id)}
-                      className="flex-1 py-1 px-2 bg-[#dc2626] hover:bg-[#ef4444] text-white text-xs rounded transition-colors"
-                    >
-                      Bekreft
-                    </button>
-                    <button
-                      onClick={() => setDeleteConfirmId(null)}
-                      className="flex-1 py-1 px-2 bg-[#555] hover:bg-[#666] text-[#ccc] text-xs rounded transition-colors"
-                    >
-                      Avbryt
-                    </button>
-                  </div>
-                ) : isEditing ? (
-                  <div className="flex gap-1">
-                    <button
-                      onClick={() => handleSaveEdit(cassette.id)}
-                      className="flex-1 py-1 px-2 bg-[#4ade80] hover:bg-[#22c55e] text-black text-xs rounded transition-colors"
-                    >
-                      Lagre
-                    </button>
-                    <button
-                      onClick={handleCancelEdit}
-                      className="flex-1 py-1 px-2 bg-[#555] hover:bg-[#666] text-[#ccc] text-xs rounded transition-colors"
-                    >
-                      Avbryt
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex gap-1">
-                    {!isActive && (
-                      <button
-                        onClick={() => onLoadCassette(cassette.id)}
-                        className="flex-1 py-1 px-2 bg-[#4ade80] hover:bg-[#22c55e] text-black text-xs rounded transition-colors"
-                      >
-                        Last inn
-                      </button>
-                    )}
-                    <button
-                      onClick={() => handleStartEdit(cassette.id, title)}
-                      className="flex-1 py-1 px-2 bg-[#555] hover:bg-[#666] text-[#ccc] text-xs rounded transition-colors"
-                      title="Gi nytt navn"
-                    >
-                      ✏️
-                    </button>
-                    <button
-                      onClick={() => handleDeleteClick(cassette.id)}
-                      className="flex-1 py-1 px-2 bg-[#555] hover:bg-[#dc2626] text-[#ccc] hover:text-white text-xs rounded transition-colors"
-                      title="Slett"
-                    >
-                      🗑️
-                    </button>
-                  </div>
-                )}
+                {/* Cassette Shadow */}
+                <div
+                  className="absolute inset-0 bg-black/20 rounded-lg blur-sm -z-10"
+                  style={{
+                    transform: 'translateY(4px) translateZ(-5px)',
+                  }}
+                />
               </motion.div>
             );
           })}
         </AnimatePresence>
 
         {cassettes.length === 0 && (
-          <div className="text-center text-[#666] text-sm py-8">
-            Ingen kassetter ennå.
-            <br />
-            Klikk &quot;Ny kassett&quot; for å starte.
+          <div className="text-center text-[#888] text-sm py-12 px-4">
+            <div className="text-4xl mb-4">📼</div>
+            <div>Ingen kassetter i stativet.</div>
+            <div className="mt-2 text-xs">Klikk &quot;NY KASSETT&quot; for å starte.</div>
           </div>
         )}
       </div>
+
+      {/* Rack Bottom */}
+      <div className="h-4 bg-gradient-to-t from-[#1a1a1a] to-transparent border-t border-[#333]" />
     </div>
   );
 }
