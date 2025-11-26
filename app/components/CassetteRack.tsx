@@ -49,191 +49,187 @@ export default function CassetteRack({
     setDeleteConfirmId(null);
   };
 
-  const formatDate = (timestamp: number) => {
-    const date = new Date(timestamp);
-    return date.toLocaleDateString('nb-NO', {
-      month: 'short',
-      day: 'numeric',
-    });
-  };
-
   return (
-    <div className="fixed left-0 top-0 bottom-0 w-72 bg-gradient-to-b from-[#2a2a2a] to-[#1a1a1a] border-r-2 border-[#444] flex flex-col z-50 shadow-2xl">
-      {/* Header */}
-      <div className="p-4 border-b-2 border-[#555] bg-gradient-to-b from-[#333] to-[#2a2a2a]">
-        <h2 className="text-xl font-bold text-[#ff6b35] mb-3 flex items-center gap-2 drop-shadow-[0_0_8px_rgba(255,107,53,0.6)]">
-          <span className="text-2xl">📼</span>
-          <span>KASSETT-STATIV</span>
-        </h2>
-        <button
-          onClick={onNewCassette}
-          className="w-full py-2 px-4 bg-gradient-to-b from-[#ff6b35] to-[#ff5520] hover:from-[#ff8555] hover:to-[#ff6b35] text-white font-bold rounded shadow-lg transition-all hover:shadow-[0_0_15px_rgba(255,107,53,0.6)] border-2 border-[#ff8555]"
-        >
-          + NY KASSETT
-        </button>
-      </div>
+    <div className="fixed left-0 top-0 bottom-0 w-80 flex flex-col z-50">
+      {/* Rack Frame */}
+      <div className="flex-1 bg-gradient-to-b from-[#1a1a1a] via-[#0a0a0a] to-[#1a1a1a] border-r-4 border-[#2a2a2a] relative">
+        {/* Left edge shadow */}
+        <div className="absolute inset-y-0 left-0 w-4 bg-gradient-to-r from-black/40 to-transparent" />
+        <div className="absolute inset-y-0 right-0 w-4 bg-gradient-to-l from-black/40 to-transparent" />
+        
+        {/* Header */}
+        <div className="p-4 bg-gradient-to-b from-[#2a2a2a] to-transparent">
+          <button
+            onClick={onNewCassette}
+            className="w-full py-2 px-4 bg-gradient-to-b from-[#ff6b35] to-[#ff5520] hover:from-[#ff8555] hover:to-[#ff6b35] text-white font-bold rounded shadow-lg transition-all hover:shadow-[0_0_15px_rgba(255,107,53,0.6)] border border-[#ff8555] text-sm"
+          >
+            + NY KASSETT
+          </button>
+        </div>
 
-      {/* Cassette List */}
-      <div className="flex-1 overflow-y-auto p-3 space-y-3">
-        <AnimatePresence>
-          {cassettes.map((cassette) => {
-            const isActive = cassette.id === currentCassetteId;
-            const isHovered = hoveredId === cassette.id;
-            const isEditing = editingId === cassette.id;
-            const isDeleting = deleteConfirmId === cassette.id;
-            const title = cassette.data.cassetteTitle || 'Untitled';
-            const hasAudio = cassette.data.tracks.some(t => t.audioBuffer !== null);
+        {/* Cassette Slots */}
+        <div className="flex-1 overflow-y-auto px-4 py-2 space-y-1">
+          <AnimatePresence>
+            {cassettes.map((cassette, index) => {
+              const isActive = cassette.id === currentCassetteId;
+              const isHovered = hoveredId === cassette.id;
+              const isEditing = editingId === cassette.id;
+              const isDeleting = deleteConfirmId === cassette.id;
+              const title = cassette.data.cassetteTitle || 'Untitled';
+              const hasAudio = cassette.data.tracks.some(t => t.audioBuffer !== null);
 
-            return (
-              <motion.div
-                key={cassette.id}
-                layoutId={`cassette-${cassette.id}`}
-                initial={{ opacity: 0, x: -30, rotateY: -15 }}
-                animate={{ opacity: 1, x: 0, rotateY: 0 }}
-                exit={{ opacity: 0, x: -30, rotateY: -15 }}
-                onHoverStart={() => setHoveredId(cassette.id)}
-                onHoverEnd={() => setHoveredId(null)}
-                className="relative"
-                style={{ transformStyle: 'preserve-3d' }}
-              >
-                {/* Cassette Shell */}
-                <div
-                  className={`relative w-full h-32 rounded-lg transition-all duration-300 cursor-pointer ${
-                    isActive
-                      ? 'shadow-[0_0_20px_rgba(255,107,53,0.8)]'
-                      : 'shadow-[0_4px_8px_rgba(0,0,0,0.5)]'
-                  } ${isHovered ? 'scale-105' : 'scale-100'}`}
-                  onClick={() => !isActive && !isEditing && !isDeleting && onLoadCassette(cassette.id)}
-                  style={{
-                    background: isActive
-                      ? 'linear-gradient(135deg, #ff6b35 0%, #ff8555 50%, #ff6b35 100%)'
-                      : 'linear-gradient(135deg, #4a4a4a 0%, #5a5a5a 50%, #4a4a4a 100%)',
-                    transform: isHovered ? 'translateZ(10px)' : 'translateZ(0px)',
-                  }}
+              return (
+                <motion.div
+                  key={cassette.id}
+                  layoutId={`cassette-${cassette.id}`}
+                  initial={{ opacity: 0, x: -50, rotateY: -20 }}
+                  animate={{ opacity: 1, x: 0, rotateY: 0 }}
+                  exit={{ opacity: 0, x: -50, rotateY: -20 }}
+                  onHoverStart={() => setHoveredId(cassette.id)}
+                  onHoverEnd={() => setHoveredId(null)}
+                  className="relative group"
+                  style={{ transformStyle: 'preserve-3d', perspective: '1000px' }}
                 >
-                  {/* Cassette Top Label Area */}
-                  <div className="absolute top-2 left-3 right-3 h-14 bg-white/90 rounded border border-gray-300 flex flex-col items-center justify-center p-1">
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        value={editingName}
-                        onChange={(e) => setEditingName(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') handleSaveEdit(cassette.id);
-                          if (e.key === 'Escape') handleCancelEdit();
-                        }}
-                        onBlur={() => handleSaveEdit(cassette.id)}
-                        className="w-full px-1 py-0.5 text-sm text-center bg-transparent border-none outline-none text-gray-800 font-['Caveat']"
-                        autoFocus
-                        onClick={(e) => e.stopPropagation()}
-                      />
-                    ) : (
-                      <>
-                        <div
-                          className="text-sm font-bold text-gray-800 truncate w-full text-center px-1"
-                          style={{ fontFamily: "'Caveat', cursive" }}
+                  {/* Cassette Spine (horizontal cassette showing spine) */}
+                  <div
+                    className={`relative h-16 rounded cursor-pointer transition-all duration-300 ${
+                      isActive ? 'scale-105' : 'scale-100'
+                    }`}
+                    onClick={() => !isActive && !isEditing && !isDeleting && onLoadCassette(cassette.id)}
+                    style={{
+                      background: isActive
+                        ? 'linear-gradient(to right, #1a1a1a 0%, #ff6b35 2%, #ff8555 50%, #ff6b35 98%, #1a1a1a 100%)'
+                        : 'linear-gradient(to right, #1a1a1a 0%, #4a4a4a 2%, #5a5a5a 50%, #4a4a4a 98%, #1a1a1a 100%)',
+                      boxShadow: isActive
+                        ? '0 4px 12px rgba(255,107,53,0.6), inset 0 1px 2px rgba(255,255,255,0.1), inset 0 -1px 2px rgba(0,0,0,0.5)'
+                        : '0 2px 4px rgba(0,0,0,0.5), inset 0 1px 2px rgba(255,255,255,0.05), inset 0 -1px 2px rgba(0,0,0,0.5)',
+                      transform: isHovered ? 'translateX(8px) rotateY(5deg)' : 'translateX(0) rotateY(0)',
+                      transformStyle: 'preserve-3d',
+                    }}
+                  >
+                    {/* Top edge highlight */}
+                    <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+                    
+                    {/* Spine label area */}
+                    <div className="absolute inset-0 flex items-center px-3">
+                      <div className="flex-1 min-w-0">
+                        {isEditing ? (
+                          <input
+                            type="text"
+                            value={editingName}
+                            onChange={(e) => setEditingName(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleSaveEdit(cassette.id);
+                              if (e.key === 'Escape') handleCancelEdit();
+                            }}
+                            onBlur={() => handleSaveEdit(cassette.id)}
+                            className="w-full px-2 py-1 text-sm bg-white/90 text-gray-800 border border-gray-400 rounded outline-none font-['Caveat']"
+                            autoFocus
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            {/* Status dot */}
+                            {hasAudio && (
+                              <div className="w-2 h-2 rounded-full bg-green-400 shadow-[0_0_4px_rgba(74,222,128,0.8)] flex-shrink-0" />
+                            )}
+                            
+                            {/* Cassette title on spine */}
+                            <div
+                              className={`text-sm font-bold truncate ${
+                                isActive ? 'text-white' : 'text-gray-300'
+                              }`}
+                              style={{
+                                fontFamily: "'Caveat', cursive",
+                                fontSize: '16px',
+                                textShadow: isActive ? '0 0 8px rgba(255,107,53,0.8)' : 'none',
+                              }}
+                            >
+                              {title}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Action buttons - show on hover */}
+                      {(isHovered || isDeleting) && !isEditing && (
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          className="flex gap-1 ml-2 flex-shrink-0"
+                          onClick={(e) => e.stopPropagation()}
                         >
-                          {title}
-                        </div>
-                        <div className="text-[10px] text-gray-600">
-                          {formatDate(cassette.data.updatedAt)}
-                        </div>
-                      </>
-                    )}
-                  </div>
-
-                  {/* Cassette Reels */}
-                  <div className="absolute bottom-6 left-0 right-0 flex justify-around px-8">
-                    <div className="w-8 h-8 rounded-full bg-[#1a1a1a] border-2 border-[#333] flex items-center justify-center">
-                      <div className="w-3 h-3 rounded-full bg-[#2a2a2a]" />
-                    </div>
-                    <div className="w-8 h-8 rounded-full bg-[#1a1a1a] border-2 border-[#333] flex items-center justify-center">
-                      <div className="w-3 h-3 rounded-full bg-[#2a2a2a]" />
-                    </div>
-                  </div>
-
-                  {/* Status Indicators */}
-                  <div className="absolute bottom-1 left-2 flex gap-1 text-xs">
-                    {hasAudio && (
-                      <span className="px-1.5 py-0.5 bg-green-500 text-white rounded text-[10px] font-bold">
-                        ●
-                      </span>
-                    )}
-                    {isActive && (
-                      <span className="px-1.5 py-0.5 bg-white text-[#ff6b35] rounded text-[10px] font-bold">
-                        AKTIV
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Action Buttons - Show on hover */}
-                  {(isHovered || isDeleting) && !isEditing && (
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="absolute bottom-1 right-1 flex gap-1"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      {isDeleting ? (
-                        <>
-                          <button
-                            onClick={() => handleConfirmDelete(cassette.id)}
-                            className="px-2 py-1 bg-red-600 hover:bg-red-700 text-white text-[10px] rounded font-bold"
-                          >
-                            OK
-                          </button>
-                          <button
-                            onClick={() => setDeleteConfirmId(null)}
-                            className="px-2 py-1 bg-gray-600 hover:bg-gray-700 text-white text-[10px] rounded font-bold"
-                          >
-                            NEI
-                          </button>
-                        </>
-                      ) : (
-                        <>
-                          <button
-                            onClick={() => handleStartEdit(cassette.id, title)}
-                            className="px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white text-[10px] rounded font-bold"
-                            title="Gi nytt navn"
-                          >
-                            ✏️
-                          </button>
-                          <button
-                            onClick={() => handleDeleteClick(cassette.id)}
-                            className="px-2 py-1 bg-red-600 hover:bg-red-700 text-white text-[10px] rounded font-bold"
-                            title="Slett"
-                          >
-                            🗑️
-                          </button>
-                        </>
+                          {isDeleting ? (
+                            <>
+                              <button
+                                onClick={() => handleConfirmDelete(cassette.id)}
+                                className="px-2 py-0.5 bg-red-600 hover:bg-red-700 text-white text-xs rounded font-bold"
+                              >
+                                ✓
+                              </button>
+                              <button
+                                onClick={() => setDeleteConfirmId(null)}
+                                className="px-2 py-0.5 bg-gray-600 hover:bg-gray-700 text-white text-xs rounded font-bold"
+                              >
+                                ✗
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <button
+                                onClick={() => handleStartEdit(cassette.id, title)}
+                                className="px-1.5 py-0.5 bg-blue-600/80 hover:bg-blue-700 text-white text-xs rounded"
+                                title="Endre navn"
+                              >
+                                ✏️
+                              </button>
+                              <button
+                                onClick={() => handleDeleteClick(cassette.id)}
+                                className="px-1.5 py-0.5 bg-red-600/80 hover:bg-red-700 text-white text-xs rounded"
+                                title="Slett"
+                              >
+                                🗑️
+                              </button>
+                            </>
+                          )}
+                        </motion.div>
                       )}
-                    </motion.div>
-                  )}
-                </div>
+                    </div>
 
-                {/* Cassette Shadow */}
-                <div
-                  className="absolute inset-0 bg-black/20 rounded-lg blur-sm -z-10"
-                  style={{
-                    transform: 'translateY(4px) translateZ(-5px)',
-                  }}
-                />
-              </motion.div>
-            );
-          })}
-        </AnimatePresence>
+                    {/* Bottom edge shadow */}
+                    <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-black/40 to-transparent" />
+                    
+                    {/* Side grooves for realism */}
+                    <div className="absolute top-2 bottom-2 left-1 w-px bg-white/10" />
+                    <div className="absolute top-2 bottom-2 right-1 w-px bg-black/40" />
+                  </div>
 
-        {cassettes.length === 0 && (
-          <div className="text-center text-[#888] text-sm py-12 px-4">
-            <div className="text-4xl mb-4">📼</div>
-            <div>Ingen kassetter i stativet.</div>
-            <div className="mt-2 text-xs">Klikk &quot;NY KASSETT&quot; for å starte.</div>
-          </div>
-        )}
+                  {/* Cassette depth/shadow */}
+                  <div
+                    className="absolute inset-0 -z-10 rounded"
+                    style={{
+                      transform: 'translateZ(-2px) translateY(2px)',
+                      background: 'linear-gradient(to bottom, transparent, rgba(0,0,0,0.3))',
+                      filter: 'blur(2px)',
+                    }}
+                  />
+                </motion.div>
+              );
+            })}
+          </AnimatePresence>
+
+          {cassettes.length === 0 && (
+            <div className="text-center text-[#666] text-sm py-12 px-4">
+              <div className="text-4xl mb-4">📼</div>
+              <div>Tomt stativ</div>
+              <div className="mt-2 text-xs">Klikk &quot;NY KASSETT&quot;</div>
+            </div>
+          )}
+        </div>
+
+        {/* Bottom rack edge */}
+        <div className="h-8 bg-gradient-to-t from-[#2a2a2a] to-transparent" />
       </div>
-
-      {/* Rack Bottom */}
-      <div className="h-4 bg-gradient-to-t from-[#1a1a1a] to-transparent border-t border-[#333]" />
     </div>
   );
 }
