@@ -23,12 +23,25 @@ export default function CassetteVisualizer({ state, isRewinding = false, isFastF
   const animationDuration = isJumping ? 0.3 : (isRewinding || isFastForwarding) ? 0.5 : 2;
 
   return (
-    <div className="w-[300px] h-[200px] mx-auto bg-gradient-to-br from-[#2d2d2d] to-[#1f1f1f] border-[3px] border-[#0a0a0a] rounded-[10px] relative shadow-[0_8px_32px_rgba(0,0,0,0.8),inset_0_0_20px_rgba(0,0,0,0.6),0_0_40px_rgba(255,165,0,0.15)]"
+    <motion.div 
+      className="w-[300px] h-[200px] mx-auto bg-gradient-to-br from-[#4a3d35] to-[#3a2e25] border-[3px] border-[#2a1f18] rounded-[10px] relative"
       style={{
         backgroundImage: `
           repeating-linear-gradient(0deg, transparent, transparent 8px, rgba(255, 255, 255, 0.05) 8px, rgba(255, 255, 255, 0.05) 9px),
           repeating-linear-gradient(90deg, transparent, transparent 8px, rgba(255, 255, 255, 0.05) 8px, rgba(255, 255, 255, 0.05) 9px)
         `
+      }}
+      animate={{
+        boxShadow: [
+          '0 8px 32px rgba(0,0,0,0.8), inset 0 0 20px rgba(0,0,0,0.6), 0 0 25px rgba(255,165,0,0.4), 0 0 50px rgba(255,165,0,0.2)',
+          '0 8px 32px rgba(0,0,0,0.8), inset 0 0 20px rgba(0,0,0,0.6), 0 0 30px rgba(255,165,0,0.5), 0 0 60px rgba(255,165,0,0.3)',
+          '0 8px 32px rgba(0,0,0,0.8), inset 0 0 20px rgba(0,0,0,0.6), 0 0 25px rgba(255,165,0,0.4), 0 0 50px rgba(255,165,0,0.2)',
+        ],
+      }}
+      transition={{
+        duration: 2,
+        repeat: Infinity,
+        ease: 'easeInOut',
       }}
     >
         {/* Screws */}
@@ -72,12 +85,6 @@ export default function CassetteVisualizer({ state, isRewinding = false, isFastF
           ></div>
           <div className="absolute bottom-5 left-20 w-2 h-2 rounded-full bg-black border border-white/10"></div>
           <div className="absolute bottom-5 right-20 w-2 h-2 rounded-full bg-black border border-white/10"></div>
-          <div 
-            className="absolute bottom-2 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[4px] border-r-[4px] border-b-[6px] border-l-transparent border-r-transparent border-b-white/30"
-            style={{
-              transform: 'translateX(-50%) rotate(90deg)'
-            }}
-          ></div>
         </div>
         
         {/* Left reel */}
@@ -153,6 +160,6 @@ export default function CassetteVisualizer({ state, isRewinding = false, isFastF
             transition={shouldAnimate ? { duration: animationDuration, repeat: Infinity, ease: 'linear' } : {}}
           />
         </motion.div>
-      </div>
+      </motion.div>
   );
 }
