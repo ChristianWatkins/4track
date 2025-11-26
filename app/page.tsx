@@ -39,6 +39,8 @@ export default function Home() {
     stopCue,
     trackLatencyFix,
     toggleTrackLatencyFix,
+    setLatencyFixValue,
+    getLatencyFixValue,
     setTrackName,
   } = useAudioRecorder();
   
@@ -49,6 +51,7 @@ export default function Home() {
   const [isRewinding, setIsRewinding] = useState(false);
   const [isFastForwarding, setIsFastForwarding] = useState(false);
   const [isJumping, setIsJumping] = useState(false);
+  const [latencyFixValue, setLatencyFixValueState] = useState(-150);
 
   useEffect(() => {
     async function load() {
@@ -68,7 +71,9 @@ export default function Home() {
       }
     }
     load();
-  }, [updateTracks]);
+    // Initialize latency fix value
+    setLatencyFixValueState(getLatencyFixValue());
+  }, [updateTracks, getLatencyFixValue]);
 
   useEffect(() => {
     async function save() {
@@ -135,6 +140,11 @@ export default function Home() {
     jumpToCounter();
     // Stop animation after 300ms
     setTimeout(() => setIsJumping(false), 300);
+  };
+
+  const handleLatencyFixValueChange = (value: number) => {
+    setLatencyFixValueState(value);
+    setLatencyFixValue(value);
   };
 
   if (isLoading) {
@@ -204,9 +214,27 @@ export default function Home() {
                 onToggleLatencyFix={toggleTrackLatencyFix}
                 trackName={track?.name || ''}
                 onTrackNameChange={setTrackName}
+                latencyFixValue={latencyFixValue}
               />
             );
           })}
+        </div>
+
+        {/* Latency Fix Value Configuration */}
+        <div className="mt-6 flex items-center justify-center gap-4">
+          <label className="text-cassette-orange text-sm font-bold">
+            Latency Fix:
+          </label>
+          <input
+            type="number"
+            value={latencyFixValue}
+            onChange={(e) => handleLatencyFixValueChange(parseInt(e.target.value) || -150)}
+            className="bg-black border-2 border-cassette-orange text-cassette-orange px-3 py-2 rounded-lg font-mono text-sm w-24 text-center focus:outline-none focus:ring-2 focus:ring-cassette-orange"
+            min="-500"
+            max="500"
+            step="1"
+          />
+          <span className="text-gray-400 text-sm">ms</span>
         </div>
 
         <div className="mt-6 flex gap-4 justify-center">

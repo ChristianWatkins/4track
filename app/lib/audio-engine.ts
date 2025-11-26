@@ -14,7 +14,7 @@ export class AudioEngine {
   private recordingSourceNode: MediaStreamAudioSourceNode | null = null;
   private recordingStartPosition: number = 0; // Position where recording started (for punch-in)
   private trackLatencyFix: [boolean, boolean, boolean, boolean] = [false, false, false, false]; // Per-track latency fix enabled
-  private readonly LATENCY_FIX_MS = -150; // Fixed latency compensation in ms
+  private latencyFixMs: number = -150; // Global latency compensation value in ms
   private monitoringStream: MediaStream | null = null;
   private monitoringSourceNode: MediaStreamAudioSourceNode | null = null;
   private monitoringAnalysers: AnalyserNode[] = [];
@@ -169,10 +169,21 @@ export class AudioEngine {
     }
   }
 
-  // Toggle latency fix for a specific track (-150ms offset when enabled)
+  // Toggle latency fix for a specific track
   setTrackLatencyFix(track: TrackNumber, enabled: boolean): void {
     this.trackLatencyFix[track - 1] = enabled;
-    console.log(`Track ${track} latency fix: ${enabled ? 'ON' : 'OFF'} (${enabled ? this.LATENCY_FIX_MS : 0}ms)`);
+    console.log(`Track ${track} latency fix: ${enabled ? 'ON' : 'OFF'} (${enabled ? this.latencyFixMs : 0}ms)`);
+  }
+
+  // Set global latency fix value (in milliseconds)
+  setLatencyFixValue(ms: number): void {
+    this.latencyFixMs = ms;
+    console.log(`Global latency fix value set to: ${ms}ms`);
+  }
+
+  // Get global latency fix value
+  getLatencyFixValue(): number {
+    return this.latencyFixMs;
   }
 
   isTrackLatencyFixEnabled(track: TrackNumber): boolean {
@@ -265,8 +276,8 @@ export class AudioEngine {
         gain.connect(analyser);
         analyser.connect(this.masterGain!);
 
-        // Apply latency fix if enabled: -150ms = track plays earlier (skip more of buffer)
-        const latencyFixMs = this.trackLatencyFix[i] ? this.LATENCY_FIX_MS : 0;
+        // Apply latency fix if enabled
+        const latencyFixMs = this.trackLatencyFix[i] ? this.latencyFixMs : 0;
         const latencyFixSec = latencyFixMs / 1000;
         const bufferStartOffset = Math.max(0, this.position - latencyFixSec);
         

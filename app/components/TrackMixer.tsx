@@ -14,6 +14,7 @@ interface TrackMixerProps {
   onToggleLatencyFix?: (track: TrackNumber) => void;
   trackName?: string;
   onTrackNameChange?: (track: TrackNumber, name: string) => void;
+  latencyFixValue?: number;
 }
 
 // Convert dB to linear (0-1) and vice versa
@@ -41,6 +42,7 @@ export default function TrackMixer({
   onToggleLatencyFix,
   trackName = '',
   onTrackNameChange,
+  latencyFixValue = -150,
 }: TrackMixerProps) {
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState(trackName);
@@ -259,7 +261,7 @@ export default function TrackMixer({
         </button>
         <button
           onClick={() => onToggleLatencyFix?.(trackNumber)}
-          title="Latency fix (-150ms)"
+          title={`Latency fix (${latencyFixValue}ms)`}
           className={`w-8 py-2 text-xs transition-all flex items-center justify-center ${
             isLatencyFixEnabled
               ? 'bg-green-600 text-white'

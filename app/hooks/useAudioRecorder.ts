@@ -248,6 +248,19 @@ export function useAudioRecorder() {
     }
   }, []);
 
+  const setLatencyFixValue = useCallback((ms: number) => {
+    if (engineRef.current) {
+      engineRef.current.setLatencyFixValue(ms);
+    }
+  }, []);
+
+  const getLatencyFixValue = useCallback(() => {
+    if (engineRef.current) {
+      return engineRef.current.getLatencyFixValue();
+    }
+    return -150; // Default value
+  }, []);
+
   const setTrackName = useCallback((track: TrackNumber, name: string) => {
     setTracks((prev) => {
       const newTracks = prev.map((t) =>
@@ -273,6 +286,8 @@ export function useAudioRecorder() {
     toggleArmTrack,
     setTrackVolume,
     toggleTrackLatencyFix,
+    setLatencyFixValue,
+    getLatencyFixValue,
     setTrackName,
     resetCounter,
     jumpToCounter,
