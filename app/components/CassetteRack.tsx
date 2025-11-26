@@ -84,7 +84,7 @@ export default function CassetteRack({
                   key={cassette.id}
                   layoutId={`cassette-${cassette.id}`}
                   initial={{ opacity: 0, x: -50, rotateY: -20 }}
-                  animate={{ opacity: 1, x: 0, rotateY: -8 }}
+                  animate={{ opacity: 1, x: 0, rotateY: -12 }}
                   exit={{ opacity: 0, x: -50, rotateY: -20 }}
                   onHoverStart={() => setHoveredId(cassette.id)}
                   onHoverEnd={() => setHoveredId(null)}
@@ -128,7 +128,7 @@ export default function CassetteRack({
                           inset -2px 0 4px rgba(255,255,255,0.08)
                         `,
                       transform: isHovered 
-                        ? 'translateX(8px) rotateY(-3deg) scale(1.02)' 
+                        ? 'translateX(12px) rotateY(-8deg) scale(1.03)' 
                         : 'translateX(0) rotateY(0) scale(1)',
                       transformStyle: 'preserve-3d',
                     }}
