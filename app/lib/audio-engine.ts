@@ -51,10 +51,11 @@ export class AudioEngine {
   constructor() {
     if (typeof window !== 'undefined') {
       // Use 'interactive' latencyHint for lowest latency during recording/monitoring
+      // Note: Don't force sampleRate - let browser use its preferred rate
       this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)({
         latencyHint: 'interactive',
-        sampleRate: 44100,
       });
+      console.log(`AudioContext created with sample rate: ${this.audioContext.sampleRate} Hz`);
       this.masterGain = this.audioContext.createGain();
       this.masterGain.connect(this.audioContext.destination);
     }
