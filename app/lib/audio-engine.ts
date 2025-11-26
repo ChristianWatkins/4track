@@ -181,8 +181,9 @@ export class AudioEngine {
 
   setTrackPan(track: TrackNumber, pan: number): void {
     this.trackPans[track - 1] = Math.max(-1, Math.min(1, pan));
-    if (this.pannerNodes[track - 1]) {
-      this.pannerNodes[track - 1].pan.value = this.trackPans[track - 1];
+    const pannerNode = this.pannerNodes[track - 1];
+    if (pannerNode) {
+      pannerNode.pan.value = this.trackPans[track - 1];
     }
   }
 
