@@ -93,21 +93,74 @@ export default function CassetteRack({
                 >
                   {/* Cassette Spine (horizontal cassette showing spine) */}
                   <div
-                    className={`relative h-16 rounded cursor-pointer transition-all duration-300 ${
+                    className={`relative h-16 rounded cursor-pointer transition-all duration-300 overflow-hidden ${
                       isActive ? 'scale-105' : 'scale-100'
                     }`}
                     onClick={() => !isActive && !isEditing && !isDeleting && onLoadCassette(cassette.id)}
                     style={{
-                      background: `linear-gradient(to right, #1a1a1a 0%, ${cassetteColor} 2%, ${cassetteColor}dd 50%, ${cassetteColor} 98%, #1a1a1a 100%)`,
+                      background: `linear-gradient(to right, 
+                        #0a0a0a 0%, 
+                        ${cassetteColor}22 1%,
+                        ${cassetteColor}dd 3%, 
+                        ${cassetteColor} 8%,
+                        ${cassetteColor}ee 50%,
+                        ${cassetteColor} 92%,
+                        ${cassetteColor}dd 97%,
+                        ${cassetteColor}22 99%,
+                        #0a0a0a 100%
+                      )`,
                       boxShadow: isActive
-                        ? `0 4px 12px ${cassetteColor}99, inset 0 1px 2px rgba(255,255,255,0.1), inset 0 -1px 2px rgba(0,0,0,0.5)`
-                        : '0 2px 4px rgba(0,0,0,0.5), inset 0 1px 2px rgba(255,255,255,0.05), inset 0 -1px 2px rgba(0,0,0,0.5)',
-                      transform: isHovered ? 'translateX(8px) rotateY(5deg)' : 'translateX(0) rotateY(0)',
+                        ? `
+                          0 6px 16px ${cassetteColor}99,
+                          inset 0 2px 4px rgba(255,255,255,0.2),
+                          inset 0 -2px 4px rgba(0,0,0,0.6),
+                          inset 4px 0 8px rgba(0,0,0,0.3),
+                          inset -2px 0 6px rgba(255,255,255,0.1)
+                        `
+                        : `
+                          0 3px 8px rgba(0,0,0,0.7),
+                          inset 0 1px 3px rgba(255,255,255,0.15),
+                          inset 0 -1px 3px rgba(0,0,0,0.5),
+                          inset 4px 0 6px rgba(0,0,0,0.3),
+                          inset -2px 0 4px rgba(255,255,255,0.08)
+                        `,
+                      transform: isHovered 
+                        ? 'translateX(8px) rotateY(5deg) scale(1.02)' 
+                        : 'translateX(0) rotateY(0) scale(1)',
                       transformStyle: 'preserve-3d',
                     }}
                   >
                     {/* Top edge highlight */}
-                    <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+                    <div 
+                      className="absolute top-0 left-0 right-0 h-1 pointer-events-none"
+                      style={{
+                        background: 'linear-gradient(to right, transparent 2%, rgba(255,255,255,0.3) 5%, rgba(255,255,255,0.15) 50%, rgba(255,255,255,0.3) 95%, transparent 98%)',
+                      }}
+                    />
+                    
+                    {/* Bottom edge shadow */}
+                    <div 
+                      className="absolute bottom-0 left-0 right-0 h-1 pointer-events-none"
+                      style={{
+                        background: 'linear-gradient(to right, transparent 2%, rgba(0,0,0,0.5) 5%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.5) 95%, transparent 98%)',
+                      }}
+                    />
+                    
+                    {/* Left edge (depth) */}
+                    <div 
+                      className="absolute top-0 bottom-0 left-0 w-2 pointer-events-none"
+                      style={{
+                        background: 'linear-gradient(to right, rgba(0,0,0,0.8), transparent)',
+                      }}
+                    />
+                    
+                    {/* Right edge highlight (where light hits) */}
+                    <div 
+                      className="absolute top-0 bottom-0 right-0 w-1 pointer-events-none"
+                      style={{
+                        background: 'linear-gradient(to left, rgba(255,255,255,0.15), transparent)',
+                      }}
+                    />
                     
                     {/* Spine label area */}
                     <div className="absolute inset-0 flex items-center px-3">
