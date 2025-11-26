@@ -62,6 +62,8 @@ export default function Home() {
   const [selectedMicrophone, setSelectedMicrophone] = useState<string | null>(null);
   const [speakers, setSpeakers] = useState<MediaDeviceInfo[]>([]);
   const [selectedSpeaker, setSelectedSpeaker] = useState<string | null>(null);
+  const [cassetteTitle, setCassetteTitle] = useState('');
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -69,10 +71,12 @@ export default function Home() {
         const project = await loadProject(PROJECT_ID);
         if (project) {
           updateTracks(project.tracks);
+          setCassetteTitle(project.cassetteTitle || '');
         } else {
           const emptyProject = createEmptyProject();
           await saveProject(PROJECT_ID, emptyProject);
           updateTracks(emptyProject.tracks);
+          setCassetteTitle('');
         }
       } catch (error) {
         console.error('Error loading project:', error);
@@ -120,6 +124,7 @@ export default function Home() {
           const project = {
             tracks,
             counterPosition,
+            cassetteTitle,
             createdAt: Date.now(),
             updatedAt: Date.now(),
           };
@@ -130,7 +135,7 @@ export default function Home() {
       }
     }
     save();
-  }, [tracks, counterPosition, isLoading]);
+  }, [tracks, counterPosition, cassetteTitle, isLoading]);
 
   const handleExport = async () => {
     try {
@@ -159,6 +164,7 @@ export default function Home() {
       await stop();
       const emptyProject = createEmptyProject();
       updateTracks(emptyProject.tracks);
+      setCassetteTitle('');
       seek(0);
       await saveProject(PROJECT_ID, emptyProject);
     }
@@ -212,12 +218,36 @@ export default function Home() {
           </h1>
         </div>
 
-        <div className="bg-gradient-to-br from-[#1a1a1a] to-[#0f0f0f] border-2 border-cassette-orange rounded-[15px] p-6 mb-8 text-center shadow-[0_4px_20px_rgba(0,0,0,0.6),inset_0_0_30px_rgba(255,165,0,0.05)]">
+        <div className="bg-gradient-to-br from-[#2a2a2a] to-[#1f1f1f] border-2 border-cassette-orange rounded-[15px] p-6 mb-8 text-center shadow-[0_4px_20px_rgba(0,0,0,0.6),inset_0_0_30px_rgba(255,165,0,0.05),0_0_30px_rgba(255,165,0,0.4),0_0_60px_rgba(255,165,0,0.2)] relative">
+          {isEditingTitle ? (
+            <div className="absolute left-1/2 -translate-x-1/2 z-30" style={{ top: 'calc(50% - 60px)' }}>
+              <input
+                type="text"
+                value={cassetteTitle}
+                onChange={(e) => setCassetteTitle(e.target.value)}
+                onBlur={() => setIsEditingTitle(false)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    setIsEditingTitle(false);
+                  } else if (e.key === 'Escape') {
+                    setIsEditingTitle(false);
+                  }
+                }}
+                autoFocus
+                className="bg-white border-2 border-cassette-orange text-gray-800 px-3 py-1 rounded text-center focus:outline-none focus:ring-2 focus:ring-cassette-orange"
+                style={{ fontFamily: "'Caveat', cursive", fontSize: '16px', minWidth: '200px' }}
+                maxLength={30}
+                onClick={(e) => e.stopPropagation()}
+              />
+            </div>
+          ) : null}
           <CassetteVisualizer 
             state={state} 
             isRewinding={isRewinding}
             isFastForwarding={isFastForwarding}
             isJumping={isJumping}
+            cassetteTitle={cassetteTitle}
+            onTitleClick={() => setIsEditingTitle(true)}
           />
         </div>
 

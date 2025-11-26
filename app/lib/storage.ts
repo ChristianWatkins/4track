@@ -59,6 +59,7 @@ export function createEmptyProject(): ProjectData {
       { id: 4, audioBuffer: null, duration: 0, sampleRate: 44100, name: '' },
     ],
     counterPosition: 0,
+    cassetteTitle: '',
     createdAt: Date.now(),
     updatedAt: Date.now(),
   };

@@ -11,6 +11,7 @@ export interface TrackData {
 export interface ProjectData {
   tracks: TrackData[];
   counterPosition: number;
+  cassetteTitle?: string;
   createdAt: number;
   updatedAt: number;
 }

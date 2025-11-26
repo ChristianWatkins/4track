@@ -8,9 +8,11 @@ interface CassetteVisualizerProps {
   isRewinding?: boolean;
   isFastForwarding?: boolean;
   isJumping?: boolean;
+  cassetteTitle?: string;
+  onTitleClick?: () => void;
 }
 
-export default function CassetteVisualizer({ state, isRewinding = false, isFastForwarding = false, isJumping = false }: CassetteVisualizerProps) {
+export default function CassetteVisualizer({ state, isRewinding = false, isFastForwarding = false, isJumping = false, cassetteTitle = '', onTitleClick }: CassetteVisualizerProps) {
   const isPlaying = state === 'playing' || state === 'recording';
   const shouldAnimate = isPlaying || isRewinding || isFastForwarding || isJumping;
   
@@ -87,6 +89,29 @@ export default function CassetteVisualizer({ state, isRewinding = false, isFastF
           <div className="absolute bottom-5 right-20 w-2 h-2 rounded-full bg-black border border-white/10"></div>
         </div>
         
+        {/* Cassette Title - above reels */}
+        <div 
+          className="absolute left-1/2 -translate-x-1/2 z-20 cursor-text" 
+          style={{ top: 'calc(50% - 60px)' }}
+          onClick={onTitleClick}
+        >
+          {cassetteTitle ? (
+            <div 
+              className="text-gray-800 font-bold text-[16px] leading-tight text-center px-2 hover:text-gray-600 transition-colors"
+              style={{ fontFamily: "'Caveat', cursive" }}
+            >
+              {cassetteTitle}
+            </div>
+          ) : (
+            <div 
+              className="text-gray-500 text-[14px] leading-tight text-center px-2 italic"
+              style={{ fontFamily: "'Caveat', cursive" }}
+            >
+              Klikk for å legge til tittel
+            </div>
+          )}
+        </div>
+
         {/* Left reel */}
         <motion.div
           className="absolute w-20 h-20 left-[50px] flex items-center justify-center z-10"
