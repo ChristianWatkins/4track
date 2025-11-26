@@ -42,6 +42,12 @@ export default function Home() {
     setLatencyFixValue,
     getLatencyFixValue,
     setTrackName,
+    getAvailableMicrophones,
+    setMicrophone,
+    getMicrophone,
+    getAvailableSpeakers,
+    setSpeaker,
+    getSpeaker,
   } = useAudioRecorder();
   
   // Check if any track has audio
@@ -52,6 +58,10 @@ export default function Home() {
   const [isFastForwarding, setIsFastForwarding] = useState(false);
   const [isJumping, setIsJumping] = useState(false);
   const [latencyFixValue, setLatencyFixValueState] = useState(-150);
+  const [microphones, setMicrophones] = useState<MediaDeviceInfo[]>([]);
+  const [selectedMicrophone, setSelectedMicrophone] = useState<string | null>(null);
+  const [speakers, setSpeakers] = useState<MediaDeviceInfo[]>([]);
+  const [selectedSpeaker, setSelectedSpeaker] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -73,7 +83,35 @@ export default function Home() {
     load();
     // Initialize latency fix value
     setLatencyFixValueState(getLatencyFixValue());
-  }, [updateTracks, getLatencyFixValue]);
+    
+    // Load available microphones and speakers
+    async function loadDevices() {
+      try {
+        const mics = await getAvailableMicrophones();
+        setMicrophones(mics);
+        // Set initial microphone if none selected
+        if (!getMicrophone() && mics.length > 0) {
+          setSelectedMicrophone(mics[0].deviceId);
+          setMicrophone(mics[0].deviceId);
+        } else {
+          setSelectedMicrophone(getMicrophone());
+        }
+
+        const spks = await getAvailableSpeakers();
+        setSpeakers(spks);
+        // Set initial speaker if none selected
+        if (!getSpeaker() && spks.length > 0) {
+          setSelectedSpeaker(spks[0].deviceId);
+          await setSpeaker(spks[0].deviceId);
+        } else {
+          setSelectedSpeaker(getSpeaker());
+        }
+      } catch (error) {
+        console.error('Error loading devices:', error);
+      }
+    }
+    loadDevices();
+  }, [updateTracks, getLatencyFixValue, getAvailableMicrophones, getMicrophone, setMicrophone, getAvailableSpeakers, getSpeaker, setSpeaker]);
 
   useEffect(() => {
     async function save() {
@@ -145,6 +183,16 @@ export default function Home() {
   const handleLatencyFixValueChange = (value: number) => {
     setLatencyFixValueState(value);
     setLatencyFixValue(value);
+  };
+
+  const handleMicrophoneChange = (deviceId: string) => {
+    setSelectedMicrophone(deviceId);
+    setMicrophone(deviceId);
+  };
+
+  const handleSpeakerChange = async (deviceId: string) => {
+    setSelectedSpeaker(deviceId);
+    await setSpeaker(deviceId);
   };
 
   if (isLoading) {
@@ -235,6 +283,50 @@ export default function Home() {
             step="1"
           />
           <span className="text-gray-400 text-sm">ms</span>
+        </div>
+
+        {/* Microphone Selection */}
+        <div className="mt-4 flex items-center justify-center gap-4">
+          <label className="text-cassette-orange text-sm font-bold">
+            Mikrofon:
+          </label>
+          <select
+            value={selectedMicrophone || ''}
+            onChange={(e) => handleMicrophoneChange(e.target.value)}
+            className="bg-black border-2 border-cassette-orange text-cassette-orange px-3 py-2 rounded-lg text-sm min-w-[200px] focus:outline-none focus:ring-2 focus:ring-cassette-orange"
+          >
+            {microphones.length === 0 ? (
+              <option value="">Ingen mikrofon tilgjengelig</option>
+            ) : (
+              microphones.map((mic) => (
+                <option key={mic.deviceId} value={mic.deviceId}>
+                  {mic.label || `Mikrofon ${mic.deviceId.slice(0, 8)}`}
+                </option>
+              ))
+            )}
+          </select>
+        </div>
+
+        {/* Speaker Selection */}
+        <div className="mt-4 flex items-center justify-center gap-4">
+          <label className="text-cassette-orange text-sm font-bold">
+            Avspilling:
+          </label>
+          <select
+            value={selectedSpeaker || ''}
+            onChange={(e) => handleSpeakerChange(e.target.value)}
+            className="bg-black border-2 border-cassette-orange text-cassette-orange px-3 py-2 rounded-lg text-sm min-w-[200px] focus:outline-none focus:ring-2 focus:ring-cassette-orange"
+          >
+            {speakers.length === 0 ? (
+              <option value="">Ingen lydenhet tilgjengelig</option>
+            ) : (
+              speakers.map((speaker) => (
+                <option key={speaker.deviceId} value={speaker.deviceId}>
+                  {speaker.label || `Lydenhet ${speaker.deviceId.slice(0, 8)}`}
+                </option>
+              ))
+            )}
+          </select>
         </div>
 
         <div className="mt-6 flex gap-4 justify-center">

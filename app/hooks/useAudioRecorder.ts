@@ -270,6 +270,46 @@ export function useAudioRecorder() {
     });
   }, []);
 
+  const getAvailableMicrophones = useCallback(async () => {
+    if (engineRef.current) {
+      return await engineRef.current.getAvailableMicrophones();
+    }
+    return [];
+  }, []);
+
+  const setMicrophone = useCallback((deviceId: string | null) => {
+    if (engineRef.current) {
+      engineRef.current.setMicrophone(deviceId);
+    }
+  }, []);
+
+  const getMicrophone = useCallback(() => {
+    if (engineRef.current) {
+      return engineRef.current.getMicrophone();
+    }
+    return null;
+  }, []);
+
+  const getAvailableSpeakers = useCallback(async () => {
+    if (engineRef.current) {
+      return await engineRef.current.getAvailableSpeakers();
+    }
+    return [];
+  }, []);
+
+  const setSpeaker = useCallback(async (deviceId: string | null) => {
+    if (engineRef.current) {
+      await engineRef.current.setSpeaker(deviceId);
+    }
+  }, []);
+
+  const getSpeaker = useCallback(() => {
+    if (engineRef.current) {
+      return engineRef.current.getSpeaker();
+    }
+    return null;
+  }, []);
+
   return {
     state,
     position,
@@ -289,6 +329,12 @@ export function useAudioRecorder() {
     setLatencyFixValue,
     getLatencyFixValue,
     setTrackName,
+    getAvailableMicrophones,
+    setMicrophone,
+    getMicrophone,
+    getAvailableSpeakers,
+    setSpeaker,
+    getSpeaker,
     resetCounter,
     jumpToCounter,
     rewind,

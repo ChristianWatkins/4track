@@ -29,6 +29,8 @@ export class AudioEngine {
   private cueStartTime: number = 0;
   private cueIntervalId: ReturnType<typeof setInterval> | null = null;
   private wasPlayingBeforeCue: boolean = false;
+  private selectedMicrophoneId: string | null = null;
+  private selectedSpeakerId: string | null = null;
 
   state: TransportState = 'stopped';
   position: number = 0;
@@ -100,7 +102,10 @@ export class AudioEngine {
     // Start monitoring if not already started
     if (!this.monitoringStream && !this.recordingStream) {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const constraints: MediaStreamConstraints = {
+          audio: this.selectedMicrophoneId ? { deviceId: { exact: this.selectedMicrophoneId } } : true
+        };
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
         this.monitoringStream = stream;
         
         if (this.audioContext) {
@@ -192,6 +197,63 @@ export class AudioEngine {
 
   getAllTrackLatencyFix(): [boolean, boolean, boolean, boolean] {
     return [...this.trackLatencyFix] as [boolean, boolean, boolean, boolean];
+  }
+
+  // Get available audio input devices (microphones)
+  async getAvailableMicrophones(): Promise<MediaDeviceInfo[]> {
+    try {
+      // Request permission first
+      await navigator.mediaDevices.getUserMedia({ audio: true });
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      return devices.filter(device => device.kind === 'audioinput');
+    } catch (error) {
+      console.error('Error getting microphones:', error);
+      return [];
+    }
+  }
+
+  // Set selected microphone device ID
+  setMicrophone(deviceId: string | null): void {
+    this.selectedMicrophoneId = deviceId;
+    console.log(`Microphone set to: ${deviceId || 'default'}`);
+  }
+
+  // Get selected microphone device ID
+  getMicrophone(): string | null {
+    return this.selectedMicrophoneId;
+  }
+
+  // Get available audio output devices (speakers/headphones)
+  async getAvailableSpeakers(): Promise<MediaDeviceInfo[]> {
+    try {
+      // Request permission first (needed for device enumeration)
+      await navigator.mediaDevices.getUserMedia({ audio: true });
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      return devices.filter(device => device.kind === 'audiooutput');
+    } catch (error) {
+      console.error('Error getting speakers:', error);
+      return [];
+    }
+  }
+
+  // Set selected speaker device ID
+  async setSpeaker(deviceId: string | null): Promise<void> {
+    this.selectedSpeakerId = deviceId;
+    console.log(`Speaker set to: ${deviceId || 'default'}`);
+    
+    // Set sink ID on AudioContext if supported
+    if (this.audioContext && deviceId && 'setSinkId' in this.audioContext) {
+      try {
+        await (this.audioContext as any).setSinkId(deviceId);
+      } catch (error) {
+        console.error('Error setting speaker:', error);
+      }
+    }
+  }
+
+  // Get selected speaker device ID
+  getSpeaker(): string | null {
+    return this.selectedSpeakerId;
   }
 
   async play(): Promise<void> {
