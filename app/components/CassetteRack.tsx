@@ -98,9 +98,7 @@ export default function CassetteRack({
                     }`}
                     onClick={() => !isActive && !isEditing && !isDeleting && onLoadCassette(cassette.id)}
                     style={{
-                      background: isActive
-                        ? `linear-gradient(to right, #1a1a1a 0%, ${cassetteColor} 2%, ${cassetteColor}dd 50%, ${cassetteColor} 98%, #1a1a1a 100%)`
-                        : 'linear-gradient(to right, #1a1a1a 0%, #4a4a4a 2%, #5a5a5a 50%, #4a4a4a 98%, #1a1a1a 100%)',
+                      background: `linear-gradient(to right, #1a1a1a 0%, ${cassetteColor} 2%, ${cassetteColor}dd 50%, ${cassetteColor} 98%, #1a1a1a 100%)`,
                       boxShadow: isActive
                         ? `0 4px 12px ${cassetteColor}99, inset 0 1px 2px rgba(255,255,255,0.1), inset 0 -1px 2px rgba(0,0,0,0.5)`
                         : '0 2px 4px rgba(0,0,0,0.5), inset 0 1px 2px rgba(255,255,255,0.05), inset 0 -1px 2px rgba(0,0,0,0.5)',
