@@ -61,7 +61,7 @@ export async function deleteProject(projectId: string): Promise<void> {
 export function createEmptyProject(): ProjectData {
   // Random cassette colors
   const colors = [
-    '#ff6b35', // Orange (default)
+    '#ff6b35', // Orange
     '#4ade80', // Green
     '#60a5fa', // Blue
     '#f472b6', // Pink

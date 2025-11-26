@@ -73,12 +73,27 @@ export default function Home() {
   // Cassette management functions
   const createNewCassette = async () => {
     const newId = `cassette-${Date.now()}`;
+    
+    // Get all existing cassettes to avoid duplicate colors
+    const existingCassettes = await getAllProjects();
+    const usedColors = new Set(existingCassettes.map(c => c.data.cassetteColor).filter(Boolean));
+    
+    const colors = [
+      '#ff6b35', '#4ade80', '#60a5fa', '#f472b6', '#a78bfa',
+      '#fbbf24', '#ef4444', '#14b8a6', '#fb923c', '#c084fc',
+    ];
+    
+    // Find first unused color, or random if all are used
+    let newColor = colors.find(c => !usedColors.has(c)) || colors[Math.floor(Math.random() * colors.length)];
+    
     const emptyProject = createEmptyProject();
+    emptyProject.cassetteColor = newColor;
+    
     await saveProject(newId, emptyProject);
     setCurrentProjectId(newId);
     updateTracks(emptyProject.tracks);
     setCassetteTitle('');
-    setCassetteColor(emptyProject.cassetteColor || '#ff6b35');
+    setCassetteColor(newColor);
     await loadAllCassettes();
   };
 
@@ -170,16 +185,35 @@ export default function Home() {
         '#fbbf24', '#ef4444', '#14b8a6', '#fb923c', '#c084fc',
       ];
       
+      // Track which colors are already used
+      const usedColors = new Set(
+        cassettes
+          .filter(c => c.data.cassetteColor)
+          .map(c => c.data.cassetteColor)
+      );
+      
       let needsUpdate = false;
-      const updatedCassettes = cassettes.map((c, index) => {
+      let colorIndex = 0;
+      
+      const updatedCassettes = cassettes.map((c) => {
         if (!c.data.cassetteColor) {
           needsUpdate = true;
-          const randomColor = colors[index % colors.length];
+          
+          // Find next unused color
+          let newColor = colors[colorIndex % colors.length];
+          while (usedColors.has(newColor) && colorIndex < colors.length) {
+            colorIndex++;
+            newColor = colors[colorIndex % colors.length];
+          }
+          
+          usedColors.add(newColor);
+          colorIndex++;
+          
           return {
             ...c,
             data: {
               ...c.data,
-              cassetteColor: randomColor,
+              cassetteColor: newColor,
             },
           };
         }
