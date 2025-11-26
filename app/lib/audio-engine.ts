@@ -541,9 +541,12 @@ export class AudioEngine {
     try {
       // Load AudioWorklet if not already loaded
       if (!this.workletLoaded) {
+        console.log('🔄 Loading AudioWorklet module from /recorder-worklet.js...');
         await this.audioContext.audioWorklet.addModule('/recorder-worklet.js');
         this.workletLoaded = true;
-        console.log('✅ AudioWorklet loaded');
+        console.log('✅ AudioWorklet loaded successfully');
+      } else {
+        console.log('✅ AudioWorklet already loaded');
       }
 
       // Get microphone access
@@ -563,8 +566,10 @@ export class AudioEngine {
       this.recordingSourceNode = sourceNode;
 
       // Create AudioWorklet node for recording
+      console.log('🎙️ Creating AudioWorklet recorder node...');
       const recorderNode = new AudioWorkletNode(this.audioContext, 'recorder-processor');
       this.recordingWorkletNode = recorderNode;
+      console.log('✅ AudioWorklet recorder node created');
 
       // Connect source -> worklet (for recording)
       sourceNode.connect(recorderNode);
@@ -605,7 +610,10 @@ export class AudioEngine {
       this.state = 'recording';
       this.onStateChange?.(this.state);
     } catch (error) {
-      console.error('Error starting recording:', error);
+      console.error('❌ Error starting recording:', error);
+      if (error instanceof Error) {
+        console.error('Error details:', error.message, error.stack);
+      }
       alert('Kunne ikke få tilgang til mikrofonen. Sjekk nettleserinnstillingene.');
     }
   }
