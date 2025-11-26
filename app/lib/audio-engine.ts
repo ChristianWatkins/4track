@@ -580,7 +580,11 @@ export class AudioEngine {
         if (event.data.type === 'started') {
           console.log('AudioWorklet recording started at', event.data.startTime);
         } else if (event.data.type === 'data') {
-          console.log('AudioWorklet recording data received', event.data.buffers.length, 'chunks');
+          console.log('AudioWorklet recording data received:', {
+            chunks: event.data.buffers.length,
+            sampleRate: event.data.sampleRate,
+            firstChunkSamples: event.data.buffers[0]?.[0]?.length
+          });
           // Store the recorded buffers for processing in stopRecording
           this.recordingChunks = event.data.buffers;
         }
