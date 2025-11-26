@@ -163,11 +163,45 @@ export default function Home() {
   const loadAllCassettes = async () => {
     try {
       const cassettes = await getAllProjects();
-      setAllCassettes(cassettes);
+      
+      // Migrate old cassettes without colors
+      const colors = [
+        '#ff6b35', '#4ade80', '#60a5fa', '#f472b6', '#a78bfa',
+        '#fbbf24', '#ef4444', '#14b8a6', '#fb923c', '#c084fc',
+      ];
+      
+      let needsUpdate = false;
+      const updatedCassettes = cassettes.map((c, index) => {
+        if (!c.data.cassetteColor) {
+          needsUpdate = true;
+          const randomColor = colors[index % colors.length];
+          return {
+            ...c,
+            data: {
+              ...c.data,
+              cassetteColor: randomColor,
+            },
+          };
+        }
+        return c;
+      });
+      
+      // Save updated cassettes back to database
+      if (needsUpdate) {
+        await Promise.all(
+          updatedCassettes.map((c) =>
+            c.data.cassetteColor && !cassettes.find(old => old.id === c.id)?.data.cassetteColor
+              ? saveProject(c.id, c.data)
+              : Promise.resolve()
+          )
+        );
+      }
+      
+      setAllCassettes(updatedCassettes);
       
       // If there are cassettes, load the most recent one
-      if (cassettes.length > 0) {
-        const mostRecent = cassettes[0];
+      if (updatedCassettes.length > 0) {
+        const mostRecent = updatedCassettes[0];
         setCurrentProjectId(mostRecent.id);
         updateTracks(mostRecent.data.tracks);
         setCassetteTitle(mostRecent.data.cassetteTitle || '');

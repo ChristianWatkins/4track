@@ -53,7 +53,13 @@ export default function CassetteVisualizer({ state, isRewinding = false, isFastF
         <div className="absolute bottom-2 left-2 w-2 h-2 rounded-full bg-gray-800 border border-gray-950 shadow-[inset_0_1px_2px_rgba(255,255,255,0.1)]" style={{ background: 'radial-gradient(circle, #2a2a2a 30%, #0a0a0a 70%)' }}></div>
         <div className="absolute bottom-2 right-2 w-2 h-2 rounded-full bg-gray-800 border border-gray-950 shadow-[inset_0_1px_2px_rgba(255,255,255,0.1)]" style={{ background: 'radial-gradient(circle, #2a2a2a 30%, #0a0a0a 70%)' }}></div>
         
-        <div className="absolute top-2 left-1/2 -translate-x-1/2 bg-cassette-orange text-black px-5 py-1 font-bold text-xs rounded z-10">
+        <div 
+          className="absolute top-2 left-1/2 -translate-x-1/2 px-5 py-1 font-bold text-xs rounded z-10 text-black"
+          style={{
+            backgroundColor: cassetteColor,
+            boxShadow: `0 2px 8px ${cassetteColor}99`,
+          }}
+        >
           4-TRACK
         </div>
         
