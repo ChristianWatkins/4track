@@ -104,7 +104,14 @@ export default function Home() {
       updatedAt: Date.now(),
     };
     await saveProject(currentProjectId, project);
-    await loadAllCassettes();
+    // Update the cassette in the list
+    setAllCassettes((prev) =>
+      prev.map((c) =>
+        c.id === currentProjectId
+          ? { ...c, data: project }
+          : c
+      ).sort((a, b) => b.data.updatedAt - a.data.updatedAt)
+    );
   };
 
   const deleteCassette = async (id: string) => {
@@ -134,7 +141,14 @@ export default function Home() {
           setCassetteTitle(newName);
         }
         
-        await loadAllCassettes();
+        // Update in local state without full reload
+        setAllCassettes((prev) =>
+          prev.map((c) =>
+            c.id === id
+              ? { ...c, data: project }
+              : c
+          ).sort((a, b) => b.data.updatedAt - a.data.updatedAt)
+        );
       }
     } catch (error) {
       console.error('Error renaming cassette:', error);
@@ -198,20 +212,30 @@ export default function Home() {
     loadDevices();
   }, [updateTracks, getLatencyFixValue, getAvailableMicrophones, getMicrophone, setMicrophone, getAvailableSpeakers, getSpeaker, setSpeaker]);
 
-  // Auto-save current cassette on changes
+  // Auto-save current cassette on changes (debounced)
   useEffect(() => {
     if (!isLoading && currentProjectId) {
-      const project = {
-        tracks,
-        counterPosition,
-        cassetteTitle,
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-      };
-      saveProject(currentProjectId, project).then(() => {
-        // Refresh cassette list to show updated time
-        loadAllCassettes();
-      });
+      const timeoutId = setTimeout(() => {
+        const project = {
+          tracks,
+          counterPosition,
+          cassetteTitle,
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        };
+        saveProject(currentProjectId, project).then(() => {
+          // Update only the current cassette in the list without reloading everything
+          setAllCassettes((prev) =>
+            prev.map((c) =>
+              c.id === currentProjectId
+                ? { ...c, data: { ...c.data, cassetteTitle, updatedAt: Date.now() } }
+                : c
+            )
+          );
+        });
+      }, 500); // Debounce 500ms
+
+      return () => clearTimeout(timeoutId);
     }
   }, [tracks, counterPosition, cassetteTitle, isLoading, currentProjectId]);
 
