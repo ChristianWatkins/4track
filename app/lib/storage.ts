@@ -40,9 +40,17 @@ export async function loadProject(projectId: string): Promise<ProjectData | null
   return (await db.get(STORE_NAME, projectId)) || null;
 }
 
-export async function getAllProjects(): Promise<string[]> {
+export async function getAllProjects(): Promise<Array<{ id: string; data: ProjectData }>> {
   const db = await getDB();
-  return await db.getAllKeys(STORE_NAME);
+  const keys = await db.getAllKeys(STORE_NAME);
+  const projects = await Promise.all(
+    keys.map(async (key) => {
+      const data = await db.get(STORE_NAME, key);
+      return { id: String(key), data: data! };
+    })
+  );
+  // Sort by updatedAt, most recent first
+  return projects.sort((a, b) => b.data.updatedAt - a.data.updatedAt);
 }
 
 export async function deleteProject(projectId: string): Promise<void> {

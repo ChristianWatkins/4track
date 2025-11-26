@@ -2,14 +2,14 @@
 
 import { useEffect, useState } from 'react';
 import { useAudioRecorder } from './hooks/useAudioRecorder';
-import { loadProject, saveProject, createEmptyProject } from './lib/storage';
-import { TrackNumber } from './lib/types';
+import { loadProject, saveProject, createEmptyProject, getAllProjects, deleteProject } from './lib/storage';
+import { TrackNumber, ProjectData } from './lib/types';
 import Counter from './components/Counter';
 import CassetteVisualizer from './components/CassetteVisualizer';
 import TransportControls from './components/TransportControls';
 import TrackMixer from './components/TrackMixer';
-
-const PROJECT_ID = 'default-project';
+import CassetteRack from './components/CassetteRack';
+import SaveCassetteButton from './components/SaveCassetteButton';
 
 export default function Home() {
   const {
@@ -66,27 +66,106 @@ export default function Home() {
   const [selectedSpeaker, setSelectedSpeaker] = useState<string | null>(null);
   const [cassetteTitle, setCassetteTitle] = useState('');
   const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
+  const [allCassettes, setAllCassettes] = useState<Array<{ id: string; data: ProjectData }>>([]);
+
+  // Cassette management functions
+  const createNewCassette = async () => {
+    const newId = `cassette-${Date.now()}`;
+    const emptyProject = createEmptyProject();
+    await saveProject(newId, emptyProject);
+    setCurrentProjectId(newId);
+    updateTracks(emptyProject.tracks);
+    setCassetteTitle('');
+    await loadAllCassettes();
+  };
+
+  const loadCassette = async (id: string) => {
+    try {
+      const project = await loadProject(id);
+      if (project) {
+        setCurrentProjectId(id);
+        updateTracks(project.tracks);
+        setCassetteTitle(project.cassetteTitle || '');
+      }
+    } catch (error) {
+      console.error('Error loading cassette:', error);
+    }
+  };
+
+  const saveCassette = async () => {
+    if (!currentProjectId) return;
+    
+    const project = {
+      tracks,
+      counterPosition,
+      cassetteTitle,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+    await saveProject(currentProjectId, project);
+    await loadAllCassettes();
+  };
+
+  const deleteCassette = async (id: string) => {
+    try {
+      await deleteProject(id);
+      await loadAllCassettes();
+      
+      // If we deleted the current cassette, create a new one
+      if (id === currentProjectId) {
+        await createNewCassette();
+      }
+    } catch (error) {
+      console.error('Error deleting cassette:', error);
+    }
+  };
+
+  const renameCassette = async (id: string, newName: string) => {
+    try {
+      const project = await loadProject(id);
+      if (project) {
+        project.cassetteTitle = newName;
+        project.updatedAt = Date.now();
+        await saveProject(id, project);
+        
+        // If this is the current cassette, update the title
+        if (id === currentProjectId) {
+          setCassetteTitle(newName);
+        }
+        
+        await loadAllCassettes();
+      }
+    } catch (error) {
+      console.error('Error renaming cassette:', error);
+    }
+  };
+
+  // Load all cassettes on mount
+  const loadAllCassettes = async () => {
+    try {
+      const cassettes = await getAllProjects();
+      setAllCassettes(cassettes);
+      
+      // If there are cassettes, load the most recent one
+      if (cassettes.length > 0) {
+        const mostRecent = cassettes[0];
+        setCurrentProjectId(mostRecent.id);
+        updateTracks(mostRecent.data.tracks);
+        setCassetteTitle(mostRecent.data.cassetteTitle || '');
+      } else {
+        // Create a default cassette
+        await createNewCassette();
+      }
+    } catch (error) {
+      console.error('Error loading cassettes:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    async function load() {
-      try {
-        const project = await loadProject(PROJECT_ID);
-        if (project) {
-          updateTracks(project.tracks);
-          setCassetteTitle(project.cassetteTitle || '');
-        } else {
-          const emptyProject = createEmptyProject();
-          await saveProject(PROJECT_ID, emptyProject);
-          updateTracks(emptyProject.tracks);
-          setCassetteTitle('');
-        }
-      } catch (error) {
-        console.error('Error loading project:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-    load();
+    loadAllCassettes();
     // Initialize latency fix value
     setLatencyFixValueState(getLatencyFixValue());
     
@@ -119,25 +198,22 @@ export default function Home() {
     loadDevices();
   }, [updateTracks, getLatencyFixValue, getAvailableMicrophones, getMicrophone, setMicrophone, getAvailableSpeakers, getSpeaker, setSpeaker]);
 
+  // Auto-save current cassette on changes
   useEffect(() => {
-    async function save() {
-      if (!isLoading) {
-        try {
-          const project = {
-            tracks,
-            counterPosition,
-            cassetteTitle,
-            createdAt: Date.now(),
-            updatedAt: Date.now(),
-          };
-          await saveProject(PROJECT_ID, project);
-        } catch (error) {
-          console.error('Error saving project:', error);
-        }
-      }
+    if (!isLoading && currentProjectId) {
+      const project = {
+        tracks,
+        counterPosition,
+        cassetteTitle,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      };
+      saveProject(currentProjectId, project).then(() => {
+        // Refresh cassette list to show updated time
+        loadAllCassettes();
+      });
     }
-    save();
-  }, [tracks, counterPosition, cassetteTitle, isLoading]);
+  }, [tracks, counterPosition, cassetteTitle, isLoading, currentProjectId]);
 
   const handleExport = async () => {
     try {
@@ -168,7 +244,9 @@ export default function Home() {
       updateTracks(emptyProject.tracks);
       setCassetteTitle('');
       seek(0);
-      await saveProject(PROJECT_ID, emptyProject);
+      if (currentProjectId) {
+        await saveProject(currentProjectId, emptyProject);
+      }
     }
   };
 
@@ -212,15 +290,33 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center p-5" style={{ background: 'linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%)' }}>
-      <div className="bg-gradient-to-br from-[#2a2a2a] to-[#1e1e1e] border-[3px] border-cassette-orange rounded-[20px] p-8 max-w-[900px] w-full shadow-[0_10px_40px_rgba(0,0,0,0.5),inset_0_0_20px_rgba(255,165,0,0.1)]">
-        <div className="text-center mb-8 border-b-2 border-cassette-orange pb-4">
-          <h1 className="text-[28px] uppercase tracking-[3px] text-cassette-orange font-bold drop-shadow-[0_0_10px_rgba(255,165,0,0.5)]">
-            4-Spors Kassettoptaker
-          </h1>
-        </div>
+    <main className="min-h-screen bg-gradient-to-b from-[#1a1a1a] to-[#0a0a0a] flex">
+      {/* Cassette Rack */}
+      <CassetteRack
+        cassettes={allCassettes}
+        currentCassetteId={currentProjectId}
+        onLoadCassette={loadCassette}
+        onDeleteCassette={deleteCassette}
+        onRenameCassette={renameCassette}
+        onNewCassette={createNewCassette}
+      />
 
-        <div className="bg-gradient-to-br from-[#2a2a2a] to-[#1f1f1f] border-2 border-cassette-orange rounded-[15px] p-6 mb-8 text-center shadow-[0_4px_20px_rgba(0,0,0,0.6),inset_0_0_30px_rgba(255,165,0,0.05),0_0_30px_rgba(255,165,0,0.4),0_0_60px_rgba(255,165,0,0.2)] relative">
+      {/* Main content area */}
+      <div className="flex-1 ml-64 p-8">
+        <div className="max-w-6xl mx-auto space-y-8">
+          <div className="text-center border-b-2 border-cassette-orange pb-4">
+            <h1 className="text-[28px] uppercase tracking-[3px] text-cassette-orange font-bold drop-shadow-[0_0_10px_rgba(255,165,0,0.5)]">
+              4-Spors Kassettoptaker
+            </h1>
+          </div>
+
+          {/* Save Button */}
+          <div className="flex justify-center">
+            <SaveCassetteButton onSave={saveCassette} />
+          </div>
+
+          {/* Cassette Visualizer */}
+          <div className="bg-gradient-to-br from-[#2a2a2a] to-[#1f1f1f] border-2 border-cassette-orange rounded-[15px] p-6 text-center shadow-[0_4px_20px_rgba(0,0,0,0.6),inset_0_0_30px_rgba(255,165,0,0.05),0_0_30px_rgba(255,165,0,0.4),0_0_60px_rgba(255,165,0,0.2)] relative">
           {isEditingTitle ? (
             <div className="absolute left-1/2 -translate-x-1/2 z-30" style={{ top: 'calc(50% - 60px)' }}>
               <input
@@ -378,6 +474,7 @@ export default function Home() {
           </button>
         </div>
       </div>
-    </main>
+    </div>
+  </main>
   );
 }
