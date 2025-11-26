@@ -6,15 +6,19 @@ export class AudioEngine {
   private sourceNodes: AudioBufferSourceNode[] = [];
   private gainNodes: GainNode[] = [];
   private analyserNodes: AnalyserNode[] = [];
+  private pannerNodes: (StereoPannerNode | null)[] = [null, null, null, null];
   private masterGain: GainNode | null = null;
   private mediaRecorder: MediaRecorder | null = null;
   private recordingStream: MediaStream | null = null;
   private recordingChunks: Blob[] = [];
   private recordingTracks: TrackNumber[] = [];
   private recordingSourceNode: MediaStreamAudioSourceNode | null = null;
+  private recordingWorkletNode: AudioWorkletNode | null = null;
   private recordingStartPosition: number = 0; // Position where recording started (for punch-in)
   private trackLatencyFix: [boolean, boolean, boolean, boolean] = [false, false, false, false]; // Per-track latency fix enabled
-  private latencyFixMs: number = -150; // Global latency compensation value in ms
+  private latencyFixMs: number = -150; // Global latency compensation value in ms (auto-measured on first recording)
+  private latencyMeasured: boolean = false; // Whether latency has been measured
+  private workletLoaded: boolean = false; // Whether AudioWorklet module is loaded
   private monitoringStream: MediaStream | null = null;
   private monitoringSourceNode: MediaStreamAudioSourceNode | null = null;
   private monitoringAnalysers: AnalyserNode[] = [];
@@ -35,6 +39,7 @@ export class AudioEngine {
   state: TransportState = 'stopped';
   position: number = 0;
   trackVolumes: [number, number, number, number] = [1, 1, 1, 1];
+  trackPans: [number, number, number, number] = [0, 0, 0, 0]; // -1 (left) to +1 (right), 0 = center
   trackLevels: [number, number, number, number] = [0, 0, 0, 0];
   armedTracks: TrackNumber[] = [];
 
@@ -174,6 +179,17 @@ export class AudioEngine {
     }
   }
 
+  setTrackPan(track: TrackNumber, pan: number): void {
+    this.trackPans[track - 1] = Math.max(-1, Math.min(1, pan));
+    if (this.pannerNodes[track - 1]) {
+      this.pannerNodes[track - 1].pan.value = this.trackPans[track - 1];
+    }
+  }
+
+  getTrackPan(track: TrackNumber): number {
+    return this.trackPans[track - 1];
+  }
+
   // Toggle latency fix for a specific track
   setTrackLatencyFix(track: TrackNumber, enabled: boolean): void {
     this.trackLatencyFix[track - 1] = enabled;
@@ -197,6 +213,101 @@ export class AudioEngine {
 
   getAllTrackLatencyFix(): [boolean, boolean, boolean, boolean] {
     return [...this.trackLatencyFix] as [boolean, boolean, boolean, boolean];
+  }
+
+  // Measure actual input latency by playing a click and detecting it through the microphone
+  private async measureLatency(): Promise<number> {
+    if (!this.audioContext) return 150; // Fallback
+    
+    console.log('🎯 Measuring input latency...');
+    
+    try {
+      // Create a short click/beep (1000 Hz for 10ms)
+      const clickBuffer = this.audioContext.createBuffer(1, 4410, 44100); // 100ms buffer
+      const data = clickBuffer.getChannelData(0);
+      for (let i = 0; i < 441; i++) { // 10ms beep
+        data[i] = Math.sin(2 * Math.PI * 1000 * i / 44100) * 0.3;
+      }
+      
+      // Get microphone access
+      const constraints: MediaStreamConstraints = { 
+        audio: this.selectedMicrophoneId 
+          ? { deviceId: { exact: this.selectedMicrophoneId } }
+          : true 
+      };
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      const sourceNode = this.audioContext.createMediaStreamSource(stream);
+      
+      // Create analyzer to detect the click coming back
+      const analyzer = this.audioContext.createAnalyser();
+      analyzer.fftSize = 2048;
+      analyzer.smoothingTimeConstant = 0;
+      sourceNode.connect(analyzer);
+      
+      // Play the click through speakers
+      const clickSource = this.audioContext.createBufferSource();
+      clickSource.buffer = clickBuffer;
+      clickSource.connect(this.masterGain!);
+      
+      const startTime = this.audioContext.currentTime;
+      clickSource.start(startTime);
+      
+      // Listen for the click to come back through the microphone
+      return new Promise((resolve) => {
+        const dataArray = new Uint8Array(analyzer.frequencyBinCount);
+        let maxDetected = 0;
+        let clickDetectedAt = 0;
+        let samplesChecked = 0;
+        const maxSamples = 100; // Check for max 1.6 seconds
+        
+        const checkAudio = () => {
+          analyzer.getByteTimeDomainData(dataArray);
+          samplesChecked++;
+          
+          // Detect peak (the click coming back)
+          let sum = 0;
+          let peak = 0;
+          for (let i = 0; i < dataArray.length; i++) {
+            const normalized = Math.abs((dataArray[i] - 128) / 128);
+            sum += normalized;
+            peak = Math.max(peak, normalized);
+          }
+          const average = sum / dataArray.length;
+          
+          // Detect significant audio activity
+          if ((average > 0.05 || peak > 0.3) && average > maxDetected) {
+            maxDetected = average;
+            clickDetectedAt = this.audioContext!.currentTime;
+          }
+          
+          // Stop after timeout or if we detected something substantial
+          if (samplesChecked >= maxSamples || (clickDetectedAt > 0 && this.audioContext!.currentTime - clickDetectedAt > 0.1)) {
+            // Calculate latency in milliseconds
+            let latencyMs = 150; // Default fallback
+            
+            if (clickDetectedAt > 0) {
+              const latencySeconds = clickDetectedAt - startTime - 0.01; // Subtract click duration
+              latencyMs = Math.max(0, Math.round(latencySeconds * 1000));
+            }
+            
+            // Cleanup
+            sourceNode.disconnect();
+            stream.getTracks().forEach(t => t.stop());
+            
+            console.log(`🎯 Measured latency: ${latencyMs}ms (maxDetected: ${maxDetected.toFixed(3)})`);
+            resolve(latencyMs);
+          } else {
+            requestAnimationFrame(checkAudio);
+          }
+        };
+        
+        // Wait a bit before starting to listen (let the click start)
+        setTimeout(() => requestAnimationFrame(checkAudio), 50);
+      });
+    } catch (error) {
+      console.error('Latency measurement failed:', error);
+      return 150; // Fallback to default
+    }
   }
 
   // Get available audio input devices (microphones)
@@ -326,16 +437,19 @@ export class AudioEngine {
 
         const source = this.audioContext.createBufferSource();
         const gain = this.audioContext.createGain();
+        const panner = this.audioContext.createStereoPanner();
         const analyser = this.audioContext.createAnalyser();
         analyser.fftSize = 256;
         analyser.smoothingTimeConstant = 0.3; // Lower for faster meter response
 
         source.buffer = audioBuffer;
         gain.gain.value = this.trackVolumes[i];
-        console.log(`Track ${i + 1}: Volume: ${this.trackVolumes[i]}`);
+        panner.pan.value = this.trackPans[i];
+        console.log(`Track ${i + 1}: Volume: ${this.trackVolumes[i]}, Pan: ${this.trackPans[i]}`);
 
         source.connect(gain);
-        gain.connect(analyser);
+        gain.connect(panner);
+        panner.connect(analyser);
         analyser.connect(this.masterGain!);
 
         // Apply latency fix if enabled
@@ -348,6 +462,7 @@ export class AudioEngine {
 
         this.sourceNodes.push(source);
         this.gainNodes[i] = gain;
+        this.pannerNodes[i] = panner;
         this.analyserNodes[i] = analyser;
 
         source.onended = () => {
@@ -413,47 +528,69 @@ export class AudioEngine {
 
     if (!this.audioContext) return;
 
+    // Measure latency on first recording
+    if (!this.latencyMeasured) {
+      console.log('🎯 First recording - measuring latency...');
+      this.latencyFixMs = await this.measureLatency();
+      this.latencyMeasured = true;
+      console.log(`✅ Latency measured: ${this.latencyFixMs}ms`);
+    }
+
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Load AudioWorklet if not already loaded
+      if (!this.workletLoaded) {
+        await this.audioContext.audioWorklet.addModule('/recorder-worklet.js');
+        this.workletLoaded = true;
+        console.log('✅ AudioWorklet loaded');
+      }
+
+      // Get microphone access
+      const constraints: MediaStreamConstraints = { 
+        audio: this.selectedMicrophoneId 
+          ? { deviceId: { exact: this.selectedMicrophoneId } }
+          : true 
+      };
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
       this.recordingStream = stream;
       this.recordingTracks = [...this.armedTracks];
-      this.recordingChunks = [];
+      this.recordingChunks = []; // Will store Float32Array chunks from worklet
       this.recordingStartPosition = this.position; // Save position for punch-in
 
-      // No latency compensation at recording time - use track offset during playback instead
-
-      // Use MediaRecorder API (modern, not deprecated)
-      const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: 'audio/webm;codecs=opus'
-      });
-      this.mediaRecorder = mediaRecorder;
-      
-      // Use MediaStreamAudioSourceNode for monitoring
+      // Create source node from microphone
       const sourceNode = this.audioContext.createMediaStreamSource(stream);
       this.recordingSourceNode = sourceNode;
-      
-      // Connect to master gain for monitoring (optional - can be removed for silent recording)
+
+      // Create AudioWorklet node for recording
+      const recorderNode = new AudioWorkletNode(this.audioContext, 'recorder-processor');
+      this.recordingWorkletNode = recorderNode;
+
+      // Connect source -> worklet (for recording)
+      sourceNode.connect(recorderNode);
+
+      // Optional: Connect to master gain for monitoring (currently silent)
       const gainNode = this.audioContext.createGain();
       gainNode.gain.value = 0; // Silent monitoring
-      sourceNode.connect(gainNode);
+      recorderNode.connect(gainNode);
       gainNode.connect(this.masterGain!);
 
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data && event.data.size > 0) {
-          this.recordingChunks.push(event.data);
-          console.log(`Recording chunk received: ${event.data.size} bytes`);
+      // Listen for messages from worklet
+      recorderNode.port.onmessage = (event) => {
+        if (event.data.type === 'started') {
+          console.log('AudioWorklet recording started at', event.data.startTime);
+        } else if (event.data.type === 'data') {
+          console.log('AudioWorklet recording data received', event.data.buffers.length, 'chunks');
+          // Store the recorded buffers for processing in stopRecording
+          this.recordingChunks = event.data.buffers;
         }
       };
 
-      // Note: onstop handler is set in stopRecording() to ensure proper track saving
+      // Start recording in worklet
+      recorderNode.port.postMessage({ command: 'start' });
+      console.log('AudioWorklet recording started');
 
       // Update monitoring to use recording stream
       await this.updateMonitoring();
-      
-      // Start MediaRecorder
-      mediaRecorder.start();
-      console.log('MediaRecorder started');
-      
+
       // Start playback if not already playing
       if (this.state !== 'playing') {
         await this.play();
@@ -469,30 +606,40 @@ export class AudioEngine {
 
   async stopRecording(): Promise<void> {
     console.log('stopRecording called');
-    console.log('recordingChunks length:', this.recordingChunks.length);
     console.log('recordingTracks:', this.recordingTracks);
     
-    // Save recording tracks before clearing (for onstop callback)
+    // Save recording tracks before clearing (for processing)
     const tracksToSave = [...this.recordingTracks];
     
-    // Stop MediaRecorder and wait for onstop callback to finish processing
-    if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
+    // Stop AudioWorklet recording
+    if (this.recordingWorkletNode) {
+      // Request stop and wait for data
       await new Promise<void>((resolve) => {
-        if (this.mediaRecorder) {
-          const originalOnStop = this.mediaRecorder.onstop;
-          this.mediaRecorder.onstop = async (event) => {
-            // Process recording with saved tracks
-            await this.processRecordingChunks(tracksToSave);
-            resolve();
+        if (this.recordingWorkletNode) {
+          const originalOnMessage = this.recordingWorkletNode.port.onmessage;
+          
+          this.recordingWorkletNode.port.onmessage = (event) => {
+            if (event.data.type === 'data') {
+              // Store the recorded buffers
+              this.recordingChunks = event.data.buffers;
+              console.log('Received', this.recordingChunks.length, 'audio chunks from worklet');
+              resolve();
+            }
           };
-          this.mediaRecorder.stop();
+          
+          // Send stop command
+          this.recordingWorkletNode.port.postMessage({ command: 'stop' });
         } else {
           resolve();
         }
       });
-    } else {
-      // If MediaRecorder already stopped, process chunks directly
-      await this.processRecordingChunks(tracksToSave);
+
+      // Process the recorded audio
+      await this.processWorkletRecording(tracksToSave);
+
+      // Disconnect and cleanup worklet
+      this.recordingWorkletNode.disconnect();
+      this.recordingWorkletNode = null;
     }
 
     // Disconnect recording nodes
@@ -506,15 +653,160 @@ export class AudioEngine {
       this.recordingStream.getTracks().forEach(track => track.stop());
       this.recordingStream = null;
     }
-    this.mediaRecorder = null;
+    
     this.recordingTracks = [];
+    this.recordingChunks = [];
+    
     // Stop position tracking when stopped
     if (this.positionIntervalId !== null) {
       clearInterval(this.positionIntervalId);
       this.positionIntervalId = null;
     }
+    
     this.state = 'stopped';
     this.onStateChange?.(this.state);
+  }
+
+  // Process recording from AudioWorklet
+  private async processWorkletRecording(tracksToSave: TrackNumber[]): Promise<void> {
+    if (this.recordingChunks.length === 0 || !this.audioContext) {
+      console.warn('No recording chunks to process');
+      return;
+    }
+
+    if (tracksToSave.length === 0) {
+      console.warn('No tracks specified for saving recording');
+      return;
+    }
+
+    try {
+      console.log('Processing', this.recordingChunks.length, 'audio chunks for tracks:', tracksToSave);
+      console.log('Recording start position:', this.recordingStartPosition);
+
+      // Convert Float32Array chunks to AudioBuffer
+      let totalSamples = 0;
+      let numChannels = 1;
+      
+      for (const chunk of this.recordingChunks) {
+        if (Array.isArray(chunk) && chunk.length > 0) {
+          numChannels = Math.max(numChannels, chunk.length);
+          if (chunk[0] && chunk[0].length) {
+            totalSamples += chunk[0].length;
+          }
+        }
+      }
+
+      console.log(`Total samples: ${totalSamples}, channels: ${numChannels}`);
+
+      if (totalSamples === 0) {
+        console.warn('No audio data recorded');
+        return;
+      }
+
+      // Create AudioBuffer from chunks
+      let newRecordingBuffer = this.audioContext.createBuffer(
+        numChannels,
+        totalSamples,
+        this.audioContext.sampleRate
+      );
+
+      let offset = 0;
+      for (const chunk of this.recordingChunks) {
+        if (Array.isArray(chunk)) {
+          for (let channel = 0; channel < Math.min(numChannels, chunk.length); channel++) {
+            if (chunk[channel]) {
+              const channelData = newRecordingBuffer.getChannelData(channel);
+              const chunkData = chunk[channel];
+              for (let i = 0; i < chunkData.length; i++) {
+                channelData[offset + i] = chunkData[i];
+              }
+            }
+          }
+          if (chunk[0]) {
+            offset += chunk[0].length;
+          }
+        }
+      }
+
+      console.log('Created AudioBuffer:', {
+        duration: newRecordingBuffer.duration,
+        sampleRate: newRecordingBuffer.sampleRate,
+        numberOfChannels: newRecordingBuffer.numberOfChannels,
+        length: newRecordingBuffer.length
+      });
+
+      // Trim latency from start of recording if measured
+      if (this.latencyMeasured && this.latencyFixMs > 0) {
+        console.log(`🎯 Trimming ${this.latencyFixMs}ms latency from recording start`);
+        newRecordingBuffer = this.trimLatencyFromBuffer(newRecordingBuffer, this.latencyFixMs);
+      }
+
+      // Save to all specified tracks (with punch-in support)
+      const newTracks = [...this.tracks];
+      for (const trackNum of tracksToSave) {
+        const trackIndex = trackNum - 1;
+        const existingTrack = this.tracks[trackIndex];
+        
+        let finalBuffer: AudioBuffer;
+        
+        // Check if we need to do punch-in (existing audio and not recording from start)
+        if (existingTrack.audioBuffer && this.recordingStartPosition > 0) {
+          console.log(`Punch-in recording on track ${trackNum} at position ${this.recordingStartPosition}s`);
+          
+          // Decode existing audio
+          const existingBuffer = await this.audioContext.decodeAudioData(existingTrack.audioBuffer.slice(0));
+          const sampleRate = existingBuffer.sampleRate;
+          const existingSamplesBeforePunchIn = Math.floor(this.recordingStartPosition * sampleRate);
+          const newRecordingSamples = Math.floor(newRecordingBuffer.duration * sampleRate);
+          const totalSamples = existingSamplesBeforePunchIn + newRecordingSamples;
+          
+          // Create merged buffer
+          finalBuffer = this.audioContext.createBuffer(1, totalSamples, sampleRate);
+          const mergedData = finalBuffer.getChannelData(0);
+          
+          // Copy existing audio before punch-in point
+          const existingData = existingBuffer.getChannelData(0);
+          for (let i = 0; i < existingSamplesBeforePunchIn; i++) {
+            mergedData[i] = existingData[i];
+          }
+          
+          // Copy new recording after punch-in point
+          const newData = newRecordingBuffer.getChannelData(0);
+          for (let i = 0; i < newRecordingSamples; i++) {
+            // Resample if needed
+            const srcIndex = Math.floor(i * newRecordingBuffer.sampleRate / sampleRate);
+            if (srcIndex < newData.length) {
+              mergedData[existingSamplesBeforePunchIn + i] = newData[srcIndex];
+            }
+          }
+          
+          console.log(`Merged audio: ${finalBuffer.duration}s (kept ${existingSamplesBeforePunchIn / sampleRate}s + added ${newRecordingSamples / sampleRate}s)`);
+        } else {
+          // No existing audio or recording from start - just use new recording
+          finalBuffer = newRecordingBuffer;
+          console.log(`Full recording on track ${trackNum}, duration: ${finalBuffer.duration}s`);
+        }
+        
+        // Convert AudioBuffer to WAV format for storage
+        const wavArrayBuffer = this.audioBufferToWav(finalBuffer);
+        console.log('WAV buffer size:', wavArrayBuffer.byteLength, 'bytes');
+
+        newTracks[trackIndex] = {
+          id: trackNum,
+          audioBuffer: wavArrayBuffer,
+          duration: finalBuffer.duration,
+          sampleRate: finalBuffer.sampleRate,
+          name: existingTrack.name,
+        };
+      }
+
+      // Update tracks
+      this.tracks = newTracks;
+      this.onTracksUpdate?.(this.tracks);
+      console.log('Recording saved to tracks:', tracksToSave);
+    } catch (error) {
+      console.error('Error processing worklet recording:', error);
+    }
   }
 
   private async processRecordingChunks(tracksToSave: TrackNumber[]): Promise<void> {
@@ -537,14 +829,20 @@ export class AudioEngine {
       const arrayBuffer = await blob.arrayBuffer();
       console.log('Blob size:', blob.size, 'bytes');
       
-      // Decode recording audio data (no latency compensation - use track offset during playback instead)
-      const newRecordingBuffer = await this.audioContext.decodeAudioData(arrayBuffer.slice(0));
+      // Decode recording audio data
+      let newRecordingBuffer = await this.audioContext.decodeAudioData(arrayBuffer.slice(0));
       console.log('Decoded recording buffer:', {
         duration: newRecordingBuffer.duration,
         sampleRate: newRecordingBuffer.sampleRate,
         numberOfChannels: newRecordingBuffer.numberOfChannels,
         length: newRecordingBuffer.length
       });
+
+      // Trim latency from start of recording if measured
+      if (this.latencyMeasured && this.latencyFixMs > 0) {
+        console.log(`🎯 Trimming ${this.latencyFixMs}ms latency from recording start`);
+        newRecordingBuffer = this.trimLatencyFromBuffer(newRecordingBuffer, this.latencyFixMs);
+      }
 
       // Save to all specified tracks (with punch-in support)
       const newTracks = [...this.tracks];
@@ -638,6 +936,35 @@ export class AudioEngine {
       console.error('Error processing recording:', error);
       alert('Kunne ikke prosessere opptaket. Prøv igjen.');
     }
+  }
+
+  // Trim latency from start of an AudioBuffer
+  private trimLatencyFromBuffer(buffer: AudioBuffer, latencyMs: number): AudioBuffer {
+    if (!this.audioContext || latencyMs <= 0) return buffer;
+    
+    const samplesToTrim = Math.floor((latencyMs / 1000) * buffer.sampleRate);
+    const newLength = Math.max(1, buffer.length - samplesToTrim); // At least 1 sample
+    
+    const trimmedBuffer = this.audioContext.createBuffer(
+      buffer.numberOfChannels,
+      newLength,
+      buffer.sampleRate
+    );
+    
+    for (let channel = 0; channel < buffer.numberOfChannels; channel++) {
+      const originalData = buffer.getChannelData(channel);
+      const trimmedData = trimmedBuffer.getChannelData(channel);
+      
+      for (let i = 0; i < newLength; i++) {
+        const srcIndex = i + samplesToTrim;
+        if (srcIndex < originalData.length) {
+          trimmedData[i] = originalData[srcIndex];
+        }
+      }
+    }
+    
+    console.log(`Trimmed ${samplesToTrim} samples (${latencyMs}ms) from buffer. New duration: ${trimmedBuffer.duration}s`);
+    return trimmedBuffer;
   }
 
   private audioBufferToWav(buffer: AudioBuffer): ArrayBuffer {
@@ -847,6 +1174,7 @@ export class AudioEngine {
         
         const source = this.audioContext.createBufferSource();
         const gain = this.audioContext.createGain();
+        const panner = this.audioContext.createStereoPanner();
         const analyser = this.audioContext.createAnalyser();
         analyser.fftSize = 256;
         analyser.smoothingTimeConstant = 0.3; // Lower for faster meter response
@@ -854,9 +1182,11 @@ export class AudioEngine {
         source.buffer = playBuffer;
         source.playbackRate.value = absRate;
         gain.gain.value = this.trackVolumes[i] * 0.5; // Reduce volume during cue
+        panner.pan.value = this.trackPans[i];
         
         source.connect(gain);
-        gain.connect(analyser);
+        gain.connect(panner);
+        panner.connect(analyser);
         analyser.connect(this.masterGain);
         
         // Calculate start offset
@@ -872,6 +1202,7 @@ export class AudioEngine {
         
         this.sourceNodes.push(source);
         this.gainNodes[i] = gain;
+        this.pannerNodes[i] = panner;
         this.analyserNodes[i] = analyser;
       } catch (error) {
         console.error(`Error starting cue playback for track ${i + 1}:`, error);
@@ -946,6 +1277,7 @@ export class AudioEngine {
     });
     this.sourceNodes = [];
     this.gainNodes = [];
+    this.pannerNodes = [null, null, null, null];
     this.analyserNodes = [];
     if (this.animationFrameId !== null) {
       cancelAnimationFrame(this.animationFrameId);

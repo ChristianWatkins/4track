@@ -19,6 +19,7 @@ export default function Home() {
     armedTracks,
     trackLevels,
     trackVolumes,
+    trackPans,
     tracks,
     play,
     stop,
@@ -26,6 +27,7 @@ export default function Home() {
     seek,
     toggleArmTrack,
     setTrackVolume,
+    setTrackPan,
     resetCounter,
     jumpToCounter,
     rewind,
@@ -288,6 +290,8 @@ export default function Home() {
                 onToggleArm={toggleArmTrack}
                 volume={trackVolumes[trackNum - 1]}
                 onVolumeChange={setTrackVolume}
+                pan={trackPans[trackNum - 1]}
+                onPanChange={setTrackPan}
                 isLatencyFixEnabled={trackLatencyFix[trackNum - 1]}
                 onToggleLatencyFix={toggleTrackLatencyFix}
                 trackName={track?.name || ''}

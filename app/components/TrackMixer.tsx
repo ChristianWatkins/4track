@@ -10,6 +10,8 @@ interface TrackMixerProps {
   onToggleArm: (track: TrackNumber) => void;
   volume?: number; // 0-1
   onVolumeChange?: (track: TrackNumber, volume: number) => void;
+  pan?: number; // -1 (left) to +1 (right), 0 = center
+  onPanChange?: (track: TrackNumber, pan: number) => void;
   isLatencyFixEnabled?: boolean;
   onToggleLatencyFix?: (track: TrackNumber) => void;
   trackName?: string;
@@ -38,6 +40,8 @@ export default function TrackMixer({
   onToggleArm,
   volume = 1,
   onVolumeChange,
+  pan = 0,
+  onPanChange,
   isLatencyFixEnabled = false,
   onToggleLatencyFix,
   trackName = '',
@@ -46,7 +50,9 @@ export default function TrackMixer({
 }: TrackMixerProps) {
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState(trackName);
+  const [isPanning, setIsPanning] = useState(false);
   const faderRef = useRef<HTMLDivElement>(null);
+  const panRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
 
   // Convert volume (0-1) to dB, then to position
@@ -146,6 +152,25 @@ export default function TrackMixer({
   useEffect(() => {
     setEditedName(trackName);
   }, [trackName]);
+
+  const handlePanClick = () => {
+    // Cycle through: center (0) -> right (+1) -> left (-1) -> center
+    let newPan = 0;
+    if (pan === 0) {
+      newPan = 1; // Right
+    } else if (pan > 0) {
+      newPan = -1; // Left
+    } else {
+      newPan = 0; // Center
+    }
+    onPanChange?.(trackNumber, newPan);
+  };
+
+  const getPanLabel = (): string => {
+    if (pan < -0.1) return 'L';
+    if (pan > 0.1) return 'R';
+    return 'C';
+  };
 
   return (
     <div className="flex flex-col items-center w-full bg-[#2a2a2a] border border-[#555] rounded-[4px] max-w-[120px] h-[500px]">
@@ -247,7 +272,7 @@ export default function TrackMixer({
         {faderDisplayDb}
       </div>
 
-      {/* Arm Button + Latency Fix */}
+      {/* Arm Button + Pan + Latency Fix */}
       <div className="w-full p-2 bg-[#1a1a1a] border-t border-[#444] flex gap-1">
         <button
           onClick={() => onToggleArm(trackNumber)}
@@ -258,6 +283,17 @@ export default function TrackMixer({
           }`}
         >
           R
+        </button>
+        <button
+          onClick={handlePanClick}
+          title={`Pan: ${pan === 0 ? 'Center' : pan > 0 ? 'Right' : 'Left'}`}
+          className={`w-8 py-2 text-xs font-bold transition-all ${
+            pan !== 0
+              ? 'bg-blue-600 text-white'
+              : 'bg-[#555] text-[#ccc] hover:bg-[#666]'
+          }`}
+        >
+          {getPanLabel()}
         </button>
         <button
           onClick={() => onToggleLatencyFix?.(trackNumber)}

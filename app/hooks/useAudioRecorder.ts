@@ -12,6 +12,7 @@ export function useAudioRecorder() {
   const [armedTracks, setArmedTracks] = useState<TrackNumber[]>([]);
   const [trackLevels, setTrackLevels] = useState<[number, number, number, number]>([0, 0, 0, 0]);
   const [trackVolumes, setTrackVolumes] = useState<[number, number, number, number]>([1, 1, 1, 1]);
+  const [trackPans, setTrackPans] = useState<[number, number, number, number]>([0, 0, 0, 0]);
   const [trackLatencyFix, setTrackLatencyFixState] = useState<[boolean, boolean, boolean, boolean]>([false, false, false, false]);
   const [tracks, setTracks] = useState<TrackData[]>([
     { id: 1, audioBuffer: null, duration: 0, sampleRate: 44100, name: '' },
@@ -236,6 +237,17 @@ export function useAudioRecorder() {
     }
   }, []);
 
+  const setTrackPan = useCallback((track: TrackNumber, pan: number) => {
+    if (engineRef.current) {
+      engineRef.current.setTrackPan(track, pan);
+      setTrackPans((prev) => {
+        const newPans = [...prev] as [number, number, number, number];
+        newPans[track - 1] = pan;
+        return newPans;
+      });
+    }
+  }, []);
+
   const toggleTrackLatencyFix = useCallback((track: TrackNumber) => {
     if (engineRef.current) {
       const currentState = engineRef.current.isTrackLatencyFixEnabled(track);
@@ -325,6 +337,8 @@ export function useAudioRecorder() {
     seek,
     toggleArmTrack,
     setTrackVolume,
+    setTrackPan,
+    trackPans,
     toggleTrackLatencyFix,
     setLatencyFixValue,
     getLatencyFixValue,
