@@ -1011,11 +1011,15 @@ export class AudioEngine {
 
     // Convert to 16-bit PCM
     let offset = 44;
-    const channelData = buffer.getChannelData(0);
+    
+    // Interleave channels if multi-channel
     for (let i = 0; i < length; i++) {
-      const sample = Math.max(-1, Math.min(1, channelData[i]));
-      view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7FFF, true);
-      offset += 2;
+      for (let channel = 0; channel < numberOfChannels; channel++) {
+        const channelData = buffer.getChannelData(channel);
+        const sample = Math.max(-1, Math.min(1, channelData[i]));
+        view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7FFF, true);
+        offset += 2;
+      }
     }
 
     return arrayBuffer;
