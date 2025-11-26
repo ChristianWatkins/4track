@@ -27,18 +27,20 @@ export default function CassetteVisualizer({ state, isRewinding = false, isFastF
 
   return (
     <motion.div 
-      className="w-[300px] h-[200px] mx-auto bg-gradient-to-br from-[#4a3d35] to-[#3a2e25] border-[3px] border-[#2a1f18] rounded-[10px] relative"
+      className="w-[300px] h-[200px] mx-auto border-[3px] rounded-[10px] relative"
       style={{
+        background: `linear-gradient(135deg, ${cassetteColor} 0%, ${cassetteColor}dd 50%, ${cassetteColor}aa 100%)`,
+        borderColor: `${cassetteColor}33`,
         backgroundImage: `
-          repeating-linear-gradient(0deg, transparent, transparent 8px, rgba(255, 255, 255, 0.05) 8px, rgba(255, 255, 255, 0.05) 9px),
-          repeating-linear-gradient(90deg, transparent, transparent 8px, rgba(255, 255, 255, 0.05) 8px, rgba(255, 255, 255, 0.05) 9px)
+          repeating-linear-gradient(0deg, transparent, transparent 8px, rgba(0, 0, 0, 0.1) 8px, rgba(0, 0, 0, 0.1) 9px),
+          repeating-linear-gradient(90deg, transparent, transparent 8px, rgba(0, 0, 0, 0.1) 8px, rgba(0, 0, 0, 0.1) 9px)
         `
       }}
       animate={{
         boxShadow: [
-          '0 8px 32px rgba(0,0,0,0.8), inset 0 0 20px rgba(0,0,0,0.6), 0 0 25px rgba(255,165,0,0.4), 0 0 50px rgba(255,165,0,0.2)',
-          '0 8px 32px rgba(0,0,0,0.8), inset 0 0 20px rgba(0,0,0,0.6), 0 0 30px rgba(255,165,0,0.5), 0 0 60px rgba(255,165,0,0.3)',
-          '0 8px 32px rgba(0,0,0,0.8), inset 0 0 20px rgba(0,0,0,0.6), 0 0 25px rgba(255,165,0,0.4), 0 0 50px rgba(255,165,0,0.2)',
+          `0 8px 32px rgba(0,0,0,0.8), inset 0 0 20px rgba(0,0,0,0.3), 0 0 25px ${cassetteColor}66, 0 0 50px ${cassetteColor}33`,
+          `0 8px 32px rgba(0,0,0,0.8), inset 0 0 20px rgba(0,0,0,0.3), 0 0 30px ${cassetteColor}80, 0 0 60px ${cassetteColor}4D`,
+          `0 8px 32px rgba(0,0,0,0.8), inset 0 0 20px rgba(0,0,0,0.3), 0 0 25px ${cassetteColor}66, 0 0 50px ${cassetteColor}33`,
         ],
       }}
       transition={{
@@ -54,10 +56,11 @@ export default function CassetteVisualizer({ state, isRewinding = false, isFastF
         <div className="absolute bottom-2 right-2 w-2 h-2 rounded-full bg-gray-800 border border-gray-950 shadow-[inset_0_1px_2px_rgba(255,255,255,0.1)]" style={{ background: 'radial-gradient(circle, #2a2a2a 30%, #0a0a0a 70%)' }}></div>
         
         <div 
-          className="absolute top-2 left-1/2 -translate-x-1/2 px-5 py-1 font-bold text-xs rounded z-10 text-black"
+          className="absolute top-2 left-1/2 -translate-x-1/2 px-5 py-1 font-bold text-xs rounded z-10"
           style={{
-            backgroundColor: cassetteColor,
-            boxShadow: `0 2px 8px ${cassetteColor}99`,
+            backgroundColor: 'rgba(0,0,0,0.3)',
+            color: '#fff',
+            textShadow: '0 1px 2px rgba(0,0,0,0.8)',
           }}
         >
           4-TRACK
@@ -78,10 +81,18 @@ export default function CassetteVisualizer({ state, isRewinding = false, isFastF
           </div>
         </div>
         
-        {/* Bottom Label */}
-        <div className="absolute bottom-[15px] left-5 right-5 flex items-center justify-between text-[10px] text-gray-800 z-[1]">
-          <span className="font-bold text-[11px]">4TR-60</span>
-          <span className="bg-red-500/10 border border-red-500/30 px-1.5 py-0.5 rounded text-[8px]">Fe</span>
+        {/* Bottom Label - colored stripe */}
+        <div 
+          className="absolute bottom-[15px] left-5 right-5 flex items-center justify-between text-[10px] z-[1] px-2 py-1 rounded-sm"
+          style={{
+            backgroundColor: cassetteColor,
+            color: '#fff',
+            textShadow: '0 1px 2px rgba(0,0,0,0.8)',
+            fontWeight: 'bold',
+          }}
+        >
+          <span className="text-[11px]">4TR-60</span>
+          <span className="bg-black/20 border border-white/20 px-1.5 py-0.5 rounded text-[8px]">Fe</span>
         </div>
         
         {/* Bottom pattern with tape head opening */}
